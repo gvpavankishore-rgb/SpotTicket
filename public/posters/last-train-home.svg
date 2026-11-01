@@ -1,0 +1,47 @@
+<svg width="600" height="900" viewBox="0 0 600 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="sky" x1="300" y1="0" x2="300" y2="900" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1A1008"/>
+      <stop offset="0.45" stop-color="#3D2412"/>
+      <stop offset="0.7" stop-color="#A75B22"/>
+      <stop offset="1" stop-color="#0A0A0A"/>
+    </linearGradient>
+    <radialGradient id="sun" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(310 445) rotate(90) scale(105)">
+      <stop stop-color="#FDE68A"/>
+      <stop offset="0.65" stop-color="#F59E0B"/>
+      <stop offset="1" stop-color="#D97706"/>
+    </radialGradient>
+    <filter id="soft" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="18"/>
+    </filter>
+  </defs>
+
+  <rect width="600" height="900" fill="url(#sky)"/>
+  <circle cx="310" cy="445" r="120" fill="#F59E0B" fill-opacity="0.35" filter="url(#soft)"/>
+  <circle cx="310" cy="445" r="88" fill="url(#sun)"/>
+
+  <path d="M0 590C80 560 145 602 220 578C292 555 350 584 420 562C488 541 542 570 600 552V900H0V590Z" fill="#140D08"/>
+  <path d="M300 610L42 900H558L300 610Z" fill="#0C0907"/>
+  <path d="M300 610L185 900M300 610L250 900M300 610L350 900M300 610L415 900" stroke="#F59E0B" stroke-opacity="0.3" stroke-width="2"/>
+  <path d="M0 803H600M0 740H600" stroke="#F59E0B" stroke-opacity="0.12" stroke-width="3"/>
+
+  <g fill="#0A0A0A">
+    <path d="M52 588L76 478L100 588H52Z"/>
+    <path d="M132 582L148 510L164 582H132Z"/>
+    <path d="M446 575L470 470L494 575H446Z"/>
+    <path d="M520 568L536 500L552 568H520Z"/>
+    <rect x="70" y="584" width="8" height="36"/>
+    <rect x="466" y="572" width="8" height="36"/>
+  </g>
+
+  <g fill="#FDE68A">
+    <circle cx="94" cy="122" r="1.5"/>
+    <circle cx="174" cy="76" r="1"/>
+    <circle cx="448" cy="146" r="1.5"/>
+    <circle cx="512" cy="88" r="1"/>
+  </g>
+
+  <text x="48" y="768" fill="#FEF3C7" font-family="Georgia, 'Times New Roman', serif" font-size="58" font-weight="700">Last Train</text>
+  <text x="48" y="828" fill="#FEF3C7" font-family="Georgia, 'Times New Roman', serif" font-size="58" font-weight="700" font-style="italic">Home</text>
+  <text x="50" y="868" fill="#F59E0B" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" letter-spacing="5">EVERY JOURNEY LEADS BACK</text>
+</svg>

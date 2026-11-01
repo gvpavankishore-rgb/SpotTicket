@@ -1,0 +1,40 @@
+<svg width="600" height="900" viewBox="0 0 600 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="300" y1="0" x2="300" y2="900" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F5E9DC"/>
+      <stop offset="0.55" stop-color="#EDD8C7"/>
+      <stop offset="1" stop-color="#D9BEA9"/>
+    </linearGradient>
+    <linearGradient id="sun" x1="250" y1="180" x2="430" y2="520" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FBBF24"/>
+      <stop offset="1" stop-color="#EA580C"/>
+    </linearGradient>
+    <filter id="grain">
+      <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.07"/>
+      </feComponentTransfer>
+    </filter>
+  </defs>
+
+  <rect width="600" height="900" fill="url(#bg)"/>
+  <circle cx="330" cy="340" r="190" fill="url(#sun)" fill-opacity="0.92"/>
+  <circle cx="448" cy="214" r="66" fill="#F5E9DC"/>
+  <circle cx="250" cy="478" r="92" fill="#2A1F1B" fill-opacity="0.08"/>
+  <circle cx="250" cy="478" r="72" fill="#2A1F1B" fill-opacity="0.08"/>
+
+  <path d="M0 640C82 610 142 648 218 628C294 608 366 650 442 630C510 612 558 634 600 622V900H0V640Z" fill="#C4A58F" fill-opacity="0.55"/>
+  <path d="M0 712C90 682 168 726 254 700C338 674 412 716 500 690C540 678 570 690 600 684V900H0V712Z" fill="#A98772" fill-opacity="0.35"/>
+
+  <g stroke="#2A1F1B" stroke-opacity="0.3" stroke-width="2">
+    <path d="M96 576C122 552 154 540 190 542"/>
+    <path d="M430 590C456 570 486 562 518 568"/>
+  </g>
+
+  <rect width="600" height="900" filter="url(#grain)" opacity="0.8"/>
+
+  <text x="48" y="780" fill="#2A1F1B" font-family="Georgia, 'Times New Roman', serif" font-size="58" font-weight="700">Paper</text>
+  <text x="48" y="840" fill="#2A1F1B" font-family="Georgia, 'Times New Roman', serif" font-size="58" font-weight="700" font-style="italic">Moons</text>
+  <text x="50" y="874" fill="#9A3412" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" letter-spacing="5">A LOVE STORY IN TWO ACTS</text>
+</svg>

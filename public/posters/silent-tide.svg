@@ -1,0 +1,42 @@
+<svg width="600" height="900" viewBox="0 0 600 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="300" y1="0" x2="300" y2="900" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#04181D"/>
+      <stop offset="0.5" stop-color="#072B32"/>
+      <stop offset="1" stop-color="#031013"/>
+    </linearGradient>
+    <radialGradient id="moon" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(378 258) rotate(90) scale(92)">
+      <stop stop-color="#FEF9C3"/>
+      <stop offset="0.7" stop-color="#FDE68A"/>
+      <stop offset="1" stop-color="#D6C48A"/>
+    </radialGradient>
+    <filter id="blur" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="26"/>
+    </filter>
+  </defs>
+
+  <rect width="600" height="900" fill="url(#bg)"/>
+  <circle cx="378" cy="258" r="104" fill="#FDE68A" fill-opacity="0.22" filter="url(#blur)"/>
+  <circle cx="378" cy="258" r="76" fill="url(#moon)"/>
+  <circle cx="406" cy="236" r="69" fill="#072B32"/>
+  <circle cx="406" cy="236" r="72" fill="#072B32" fill-opacity="0.1"/>
+
+  <g fill="#E0F2F1">
+    <circle cx="112" cy="150" r="1.5"/>
+    <circle cx="188" cy="88" r="1"/>
+    <circle cx="512" cy="140" r="1"/>
+    <circle cx="460" cy="72" r="1.5"/>
+  </g>
+
+  <path d="M0 558C70 538 132 574 196 556C260 538 324 570 398 550C464 532 534 566 600 546V900H0V558Z" fill="#0B3A42"/>
+  <path d="M0 616C82 588 144 632 222 610C300 588 362 628 438 606C504 586 552 616 600 600V900H0V616Z" fill="#072A30"/>
+  <path d="M0 690C74 660 154 706 236 682C318 658 380 700 462 676C518 660 558 682 600 670V900H0V690Z" fill="#051C20"/>
+  <path d="M0 758C88 732 156 772 246 746C328 722 398 764 484 738C530 724 566 742 600 730V900H0V758Z" fill="#031214"/>
+
+  <path d="M276 612C254 650 230 680 202 714" stroke="#FDE68A" stroke-opacity="0.32" stroke-width="2"/>
+  <circle cx="276" cy="612" r="4" fill="#FDE68A"/>
+
+  <text x="48" y="784" fill="#F0FDFA" font-family="Georgia, 'Times New Roman', serif" font-size="52" font-weight="700">The Silent</text>
+  <text x="48" y="840" fill="#F0FDFA" font-family="Georgia, 'Times New Roman', serif" font-size="52" font-weight="700" font-style="italic">Tide</text>
+  <text x="50" y="874" fill="#F59E0B" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" letter-spacing="5">SOME SECRETS SURFACE</text>
+</svg>

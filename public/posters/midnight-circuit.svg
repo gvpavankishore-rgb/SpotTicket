@@ -1,0 +1,71 @@
+<svg width="600" height="900" viewBox="0 0 600 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="300" y1="0" x2="300" y2="900" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#05130B"/>
+      <stop offset="0.5" stop-color="#081B0F"/>
+      <stop offset="1" stop-color="#020604"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(300 330) rotate(90) scale(240)">
+      <stop stop-color="#F59E0B" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#F59E0B" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="blur" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="12"/>
+    </filter>
+  </defs>
+
+  <rect width="600" height="900" fill="url(#bg)"/>
+  <rect width="600" height="900" fill="url(#glow)"/>
+
+  <circle cx="300" cy="330" r="140" stroke="#F59E0B" stroke-opacity="0.75" stroke-width="2"/>
+  <circle cx="300" cy="330" r="100" stroke="#F59E0B" stroke-opacity="0.35" stroke-width="2"/>
+  <circle cx="300" cy="330" r="60" stroke="#F59E0B" stroke-opacity="0.2" stroke-width="2"/>
+  <path d="M300 170V490M140 330H460" stroke="#F59E0B" stroke-opacity="0.16" stroke-width="2"/>
+
+  <g stroke="#F59E0B" stroke-width="2" fill="none">
+    <path d="M300 330L120 210V104H232" stroke-opacity="0.45"/>
+    <path d="M300 330L480 450V556H368" stroke-opacity="0.45"/>
+    <path d="M300 330L420 198H520" stroke-opacity="0.25"/>
+    <path d="M300 330L180 462V550" stroke-opacity="0.25"/>
+  </g>
+
+  <g fill="#F59E0B">
+    <circle cx="120" cy="210" r="4"/>
+    <circle cx="232" cy="104" r="4"/>
+    <circle cx="480" cy="450" r="4"/>
+    <circle cx="368" cy="556" r="4"/>
+    <circle cx="420" cy="198" r="3"/>
+    <circle cx="180" cy="462" r="3"/>
+  </g>
+
+  <g fill="#052E16" stroke="#F59E0B" stroke-opacity="0.18">
+    <rect x="30" y="620" width="54" height="280"/>
+    <rect x="100" y="664" width="42" height="236"/>
+    <rect x="158" y="594" width="64" height="306"/>
+    <rect x="238" y="680" width="40" height="220"/>
+    <rect x="294" y="634" width="58" height="266"/>
+    <rect x="368" y="700" width="44" height="200"/>
+    <rect x="428" y="610" width="62" height="290"/>
+    <rect x="506" y="670" width="50" height="230"/>
+  </g>
+
+  <g fill="#F59E0B" fill-opacity="0.55">
+    <rect x="42" y="646" width="8" height="8"/>
+    <rect x="64" y="700" width="8" height="8"/>
+    <rect x="112" y="690" width="6" height="6"/>
+    <rect x="172" y="628" width="8" height="8"/>
+    <rect x="198" y="710" width="6" height="6"/>
+    <rect x="306" y="662" width="8" height="8"/>
+    <rect x="334" y="736" width="6" height="6"/>
+    <rect x="442" y="646" width="8" height="8"/>
+    <rect x="472" y="724" width="6" height="6"/>
+    <rect x="522" y="700" width="8" height="8"/>
+  </g>
+
+  <circle cx="300" cy="330" r="10" fill="#F59E0B" filter="url(#blur)"/>
+  <circle cx="300" cy="330" r="5" fill="#FDE68A"/>
+
+  <text x="48" y="780" fill="#FFFFFF" font-family="Arial, Helvetica, sans-serif" font-size="52" font-weight="800" letter-spacing="1">MIDNIGHT</text>
+  <text x="48" y="836" fill="#FFFFFF" font-family="Arial, Helvetica, sans-serif" font-size="52" font-weight="800" letter-spacing="1">CIRCUIT</text>
+  <text x="50" y="874" fill="#F59E0B" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" letter-spacing="5">ONE NIGHT. NO WAY OUT.</text>
+</svg>
