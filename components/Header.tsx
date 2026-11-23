@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Ticket } from "lucide-react";
 import LocationSelector from "@/components/LocationSelector";
+import MobileMenu from "@/components/MobileMenu";
 import type { LocationOption } from "@/lib/locations";
 
 interface HeaderProps {
@@ -36,28 +37,31 @@ export default function Header({
           selectedLocationId={selectedLocationId}
         />
 
-        {userEmail ? (
-          <Link
-            href="/profile"
-            title={userEmail}
-            aria-label={`Profile for ${userEmail}`}
-            className="flex min-w-0 items-center gap-2 justify-self-end rounded-full border border-white/[0.08] bg-white/[0.03] py-1 pl-1 pr-1 transition-colors hover:border-accent/30 hover:bg-accent/10 sm:pr-2.5"
-          >
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent text-[11px] font-bold uppercase text-black">
-              {userEmail.charAt(0)}
-            </span>
-            <span className="hidden max-w-[96px] truncate text-[11px] font-medium text-zinc-300 min-[390px]:inline">
-              {userEmail}
-            </span>
-          </Link>
-        ) : (
-          <Link
-            href="/login"
-            className="justify-self-end rounded-full bg-accent px-3.5 py-2 text-xs font-semibold text-black transition-colors hover:bg-amber-400"
-          >
-            Login
-          </Link>
-        )}
+        <div className="flex items-center justify-self-end gap-2">
+          {userEmail ? (
+            <Link
+              href="/profile"
+              title={userEmail}
+              aria-label={`Profile for ${userEmail}`}
+              className="flex min-w-0 items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] py-1 pl-1 pr-1 transition-colors hover:border-accent/30 hover:bg-accent/10 sm:pr-2.5"
+            >
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent text-[11px] font-bold uppercase text-black">
+                {userEmail.charAt(0)}
+              </span>
+              <span className="hidden max-w-[96px] truncate text-[11px] font-medium text-zinc-300 min-[390px]:inline">
+                {userEmail}
+              </span>
+            </Link>
+          ) : (
+            <Link
+              href="/login"
+              className="hidden rounded-full bg-accent px-3.5 py-2 text-xs font-semibold text-black transition-colors hover:bg-amber-400 min-[430px]:block"
+            >
+              Login
+            </Link>
+          )}
+          <MobileMenu userEmail={userEmail} />
+        </div>
       </div>
     </header>
   );

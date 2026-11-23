@@ -1,3 +1,7 @@
+import type { CastMember } from "@/lib/cast";
+
+export type CastRecord = CastMember;
+
 export interface MovieRecord {
   id: string;
   title: string;

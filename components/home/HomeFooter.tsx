@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowUpRight, Film, MapPin, Ticket } from "lucide-react";
+import SocialLinks from "@/components/SocialLinks";
 
 interface HomeFooterProps {
   locationName?: string | null;
@@ -74,6 +75,13 @@ export default function HomeFooter({ locationName }: HomeFooterProps) {
                 Currently exploring {locationName}
               </p>
             )}
+
+            <div className="mt-6">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-zinc-500">
+                Follow the spotlight
+              </p>
+              <SocialLinks className="mt-3" />
+            </div>
           </div>
 
           <div>

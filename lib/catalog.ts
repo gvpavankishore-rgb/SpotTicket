@@ -1,4 +1,5 @@
-﻿import { getErrorMessage, getTodayDateKey } from "@/lib/format";
+﻿import type { CastMember } from "@/lib/cast";
+import { getErrorMessage, getTodayDateKey } from "@/lib/format";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 
@@ -207,6 +208,37 @@ export async function getMovieById(
       data: null,
       error: getErrorMessage(error, "Could not load the movie."),
     };
+  }
+}
+
+export async function getCastForMovie(
+  movieId: string,
+): Promise<CatalogResult<CastMember[]>> {
+  if (!isSupabaseConfigured) {
+    return { data: [], error: null };
+  }
+
+  if (!isUuid(movieId)) {
+    return { data: [], error: null };
+  }
+
+  try {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("movie_cast")
+      .select("*")
+      .eq("movie_id", movieId)
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: true })
+      .order("name", { ascending: true });
+
+    if (error) {
+      return { data: [], error: null };
+    }
+
+    return { data: (data ?? []) as CastMember[], error: null };
+  } catch {
+    return { data: [], error: null };
   }
 }
 

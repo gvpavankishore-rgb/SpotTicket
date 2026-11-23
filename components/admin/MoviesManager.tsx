@@ -11,14 +11,17 @@ import {
   Pencil,
   Plus,
   Trash2,
+  UsersRound,
   X,
 } from "lucide-react";
 import {
   Field,
+  SelectInput,
   TextArea,
   TextInput,
 } from "@/components/admin/FormControls";
-import type { MovieRecord } from "@/lib/admin";
+import type { CastRecord, MovieRecord } from "@/lib/admin";
+import { CAST_ROLES, type CastRole } from "@/lib/cast";
 import { getErrorMessage } from "@/lib/format";
 import { createClient } from "@/lib/supabase/client";
 
@@ -34,9 +37,108 @@ const emptyForm = {
 
 type MovieForm = typeof emptyForm;
 
+interface CastFormItem {
+  key: string;
+  id: string | null;
+  name: string;
+  role: CastRole;
+  photo_url: string;
+}
+
+type CastPayload = Omit<CastFormItem, "key">;
+
+let castKeyCounter = 0;
+
+function newCastItem(): CastFormItem {
+  castKeyCounter += 1;
+  return {
+    key: `cast-${castKeyCounter}`,
+    id: null,
+    name: "",
+    role: "Actor",
+    photo_url: "",
+  };
+}
+
+function toCastFormItem(record: CastRecord): CastFormItem {
+  return {
+    key: `cast-${record.id}`,
+    id: record.id,
+    name: record.name,
+    role: record.role,
+    photo_url: record.photo_url,
+  };
+}
+
+async function saveCastForMovie(
+  supabase: ReturnType<typeof createClient>,
+  movieId: string,
+  items: CastPayload[],
+) {
+  const { data: existing, error: fetchError } = await supabase
+    .from("movie_cast")
+    .select("id")
+    .eq("movie_id", movieId);
+
+  if (fetchError) {
+    throw fetchError;
+  }
+
+  const keptIds = new Set(
+    items.map((item) => item.id).filter((id): id is string => Boolean(id)),
+  );
+  const staleIds = ((existing ?? []) as { id: string }[])
+    .map((row) => row.id)
+    .filter((id) => !keptIds.has(id));
+
+  if (staleIds.length > 0) {
+    const { error: deleteError } = await supabase
+      .from("movie_cast")
+      .delete()
+      .in("id", staleIds);
+
+    if (deleteError) {
+      throw deleteError;
+    }
+  }
+
+  for (let index = 0; index < items.length; index += 1) {
+    const item = items[index];
+    const payload = {
+      movie_id: movieId,
+      name: item.name,
+      role: item.role,
+      photo_url: item.photo_url,
+      sort_order: index,
+    };
+
+    if (item.id) {
+      const { error: updateError } = await supabase
+        .from("movie_cast")
+        .update(payload)
+        .eq("id", item.id);
+
+      if (updateError) {
+        throw updateError;
+      }
+    } else {
+      const { error: insertError } = await supabase
+        .from("movie_cast")
+        .insert(payload);
+
+      if (insertError) {
+        throw insertError;
+      }
+    }
+  }
+}
+
 export default function MoviesManager() {
   const [movies, setMovies] = useState<MovieRecord[]>([]);
   const [form, setForm] = useState<MovieForm>(emptyForm);
+  const [castItems, setCastItems] = useState<CastFormItem[]>([]);
+  const [castCounts, setCastCounts] = useState<Record<string, number>>({});
+  const [castLoading, setCastLoading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -52,16 +154,25 @@ export default function MoviesManager() {
 
     try {
       const supabase = createClient();
-      const { data, error: loadError } = await supabase
-        .from("movies")
-        .select("*")
-        .order("created_at", { ascending: false });
+      const [moviesResult, castResult] = await Promise.all([
+        supabase
+          .from("movies")
+          .select("*")
+          .order("created_at", { ascending: false }),
+        supabase.from("movie_cast").select("movie_id"),
+      ]);
 
-      if (loadError) {
-        throw loadError;
+      if (moviesResult.error) {
+        throw moviesResult.error;
       }
 
-      setMovies((data ?? []) as MovieRecord[]);
+      setMovies((moviesResult.data ?? []) as MovieRecord[]);
+
+      const counts: Record<string, number> = {};
+      for (const row of (castResult.data ?? []) as { movie_id: string }[]) {
+        counts[row.movie_id] = (counts[row.movie_id] ?? 0) + 1;
+      }
+      setCastCounts(counts);
     } catch (loadError) {
       setError(
         getErrorMessage(
@@ -84,10 +195,21 @@ export default function MoviesManager() {
 
   function resetForm() {
     setForm({ ...emptyForm });
+    setCastItems([]);
     setEditingId(null);
   }
 
-  function handleEdit(movie: MovieRecord) {
+  function updateCastItem(key: string, patch: Partial<CastFormItem>) {
+    setCastItems((current) =>
+      current.map((item) => (item.key === key ? { ...item, ...patch } : item)),
+    );
+  }
+
+  function removeCastItem(key: string) {
+    setCastItems((current) => current.filter((item) => item.key !== key));
+  }
+
+  async function handleEdit(movie: MovieRecord) {
     setEditingId(movie.id);
     setForm({
       title: movie.title,
@@ -98,12 +220,41 @@ export default function MoviesManager() {
       trailer_url: movie.trailer_url ?? "",
       description: movie.description ?? "",
     });
+    setCastItems([]);
     setError(null);
     setNotice(null);
+    setCastLoading(true);
+
+    try {
+      const supabase = createClient();
+      const { data, error: castError } = await supabase
+        .from("movie_cast")
+        .select("*")
+        .eq("movie_id", movie.id)
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: true });
+
+      if (castError) {
+        throw castError;
+      }
+
+      setCastItems(((data ?? []) as CastRecord[]).map(toCastFormItem));
+    } catch (castLoadError) {
+      setError(
+        getErrorMessage(castLoadError, "Could not load the cast for this movie."),
+      );
+    } finally {
+      setCastLoading(false);
+    }
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (castLoading) {
+      return;
+    }
+
     setError(null);
     setNotice(null);
 
@@ -128,10 +279,25 @@ export default function MoviesManager() {
       return;
     }
 
+    const castPayload: CastPayload[] = castItems
+      .map((item) => ({
+        id: item.id,
+        name: item.name.trim(),
+        role: item.role,
+        photo_url: item.photo_url.trim(),
+      }))
+      .filter((item) => item.name || item.photo_url);
+
+    if (castPayload.some((item) => !item.name)) {
+      setError("Every cast member needs a name.");
+      return;
+    }
+
     setSaving(true);
 
     try {
       const supabase = createClient();
+      let movieId = editingId;
 
       if (editingId) {
         const { error: updateError } = await supabase
@@ -142,20 +308,27 @@ export default function MoviesManager() {
         if (updateError) {
           throw updateError;
         }
-
-        setNotice("Movie updated.");
       } else {
-        const { error: insertError } = await supabase
+        const { data: inserted, error: insertError } = await supabase
           .from("movies")
-          .insert(payload);
+          .insert(payload)
+          .select("id")
+          .single();
 
         if (insertError) {
           throw insertError;
         }
 
-        setNotice("Movie added.");
+        movieId = inserted.id as string;
       }
 
+      if (!movieId) {
+        throw new Error("Could not determine the movie to save.");
+      }
+
+      await saveCastForMovie(supabase, movieId, castPayload);
+
+      setNotice(isEditing ? "Movie and cast updated." : "Movie added.");
       resetForm();
       await loadMovies();
     } catch (saveError) {
@@ -167,7 +340,7 @@ export default function MoviesManager() {
 
   async function handleDelete(movie: MovieRecord) {
     const confirmed = window.confirm(
-      `Delete "${movie.title}"? Any shows linked to this movie will also be removed.`,
+      `Delete "${movie.title}"? Any shows and cast details linked to this movie will also be removed.`,
     );
 
     if (!confirmed) {
@@ -334,12 +507,118 @@ export default function MoviesManager() {
                 placeholder="A short synopsis for the movie..."
               />
             </Field>
+
+            <div className="border-t border-white/[0.06] pt-4">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <UsersRound className="h-4 w-4 text-accent" />
+                  <div>
+                    <p className="text-xs font-semibold text-white">
+                      Cast &amp; Crew
+                    </p>
+                    <p className="text-[11px] text-zinc-500">
+                      Director, actors and producers
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCastItems((current) => [...current, newCastItem()])
+                  }
+                  disabled={saving || castLoading}
+                  className="inline-flex h-8 items-center gap-1 rounded-lg border border-accent/30 bg-accent/10 px-2.5 text-[11px] font-semibold text-accent transition-colors hover:bg-accent/20 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Add
+                </button>
+              </div>
+
+              {castLoading ? (
+                <div className="mt-3 flex items-center gap-2 rounded-xl border border-white/[0.06] bg-black/20 p-3 text-xs text-zinc-500">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin text-accent" />
+                  Loading cast...
+                </div>
+              ) : castItems.length === 0 ? (
+                <p className="mt-3 rounded-xl border border-dashed border-white/[0.08] bg-black/20 px-3 py-4 text-center text-[11px] leading-relaxed text-zinc-500">
+                  No cast added yet. Use Add to include the director, actors
+                  and producers.
+                </p>
+              ) : (
+                <div className="mt-3 space-y-2.5">
+                  {castItems.map((item, index) => (
+                    <div
+                      key={item.key}
+                      className="rounded-xl border border-white/[0.06] bg-black/20 p-3"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
+                          Person {index + 1}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => removeCastItem(item.key)}
+                          disabled={saving}
+                          aria-label={`Remove cast member ${index + 1}`}
+                          title={`Remove cast member ${index + 1}`}
+                          className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/[0.08] text-zinc-500 transition-colors hover:border-red-500/40 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                      <div className="mt-2 grid gap-2 sm:grid-cols-[minmax(0,1fr)_112px]">
+                        <TextInput
+                          aria-label={`Name of cast member ${index + 1}`}
+                          value={item.name}
+                          onChange={(event) =>
+                            updateCastItem(item.key, {
+                              name: event.target.value,
+                            })
+                          }
+                          placeholder="Full name"
+                          disabled={saving}
+                        />
+                        <SelectInput
+                          aria-label={`Role of cast member ${index + 1}`}
+                          value={item.role}
+                          onChange={(event) =>
+                            updateCastItem(item.key, {
+                              role: event.target.value as CastRole,
+                            })
+                          }
+                          disabled={saving}
+                        >
+                          {CAST_ROLES.map((role) => (
+                            <option key={role} value={role}>
+                              {role}
+                            </option>
+                          ))}
+                        </SelectInput>
+                      </div>
+                      <TextInput
+                        aria-label={`Photo URL of cast member ${index + 1}`}
+                        type="url"
+                        className="mt-2"
+                        value={item.photo_url}
+                        onChange={(event) =>
+                          updateCastItem(item.key, {
+                            photo_url: event.target.value,
+                          })
+                        }
+                        placeholder="https://example.com/photo.jpg"
+                        disabled={saving}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="mt-5 flex gap-2">
             <button
               type="submit"
-              disabled={saving}
+              disabled={saving || castLoading}
               className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-accent text-sm font-semibold text-black transition-colors hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {saving ? (
@@ -400,13 +679,14 @@ export default function MoviesManager() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[760px] text-left">
+              <table className="w-full min-w-[820px] text-left">
                 <thead>
                   <tr className="border-b border-white/[0.06] text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
                     <th className="px-4 py-3">Movie</th>
                     <th className="px-4 py-3">Genre</th>
                     <th className="px-4 py-3">Language</th>
                     <th className="px-4 py-3">Duration</th>
+                    <th className="px-4 py-3">Cast</th>
                     <th className="px-4 py-3 text-right">Actions</th>
                   </tr>
                 </thead>
@@ -452,10 +732,15 @@ export default function MoviesManager() {
                         {movie.duration}
                       </td>
                       <td className="px-4 py-3">
+                        <span className="inline-flex rounded-full border border-white/[0.08] bg-white/[0.03] px-2 py-1 text-[11px] font-medium text-zinc-300">
+                          {castCounts[movie.id] ?? 0}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
                         <div className="flex items-center justify-end gap-1.5">
                           <button
                             type="button"
-                            onClick={() => handleEdit(movie)}
+                            onClick={() => void handleEdit(movie)}
                             title={`Edit ${movie.title}`}
                             aria-label={`Edit ${movie.title}`}
                             className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.08] text-zinc-400 transition-colors hover:border-accent/40 hover:text-accent"

@@ -25,6 +25,19 @@ create table if not exists public.movies (
 alter table public.movies
   add column if not exists trailer_url text;
 
+create table if not exists public.movie_cast (
+  id uuid primary key default gen_random_uuid(),
+  movie_id uuid not null references public.movies (id) on delete cascade,
+  name text not null,
+  role text not null check (role in ('Director', 'Actor', 'Producer')),
+  photo_url text not null default '',
+  sort_order integer not null default 0,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists movie_cast_movie_id_idx
+  on public.movie_cast (movie_id, sort_order);
+
 create table if not exists public.theatres (
   id uuid primary key default gen_random_uuid(),
   name text not null,
@@ -100,6 +113,7 @@ create index if not exists shows_theatre_id_idx on public.shows (theatre_id);
 create index if not exists shows_date_time_idx on public.shows (show_date, show_time);
 
 alter table public.movies enable row level security;
+alter table public.movie_cast enable row level security;
 alter table public.theatres enable row level security;
 alter table public.shows enable row level security;
 alter table public.locations enable row level security;
@@ -140,6 +154,20 @@ create policy "Authenticated users can manage movies"
   using (true)
   with check (true);
 
+drop policy if exists "Cast is publicly readable" on public.movie_cast;
+create policy "Cast is publicly readable"
+  on public.movie_cast
+  for select
+  using (true);
+
+drop policy if exists "Authenticated users can manage cast" on public.movie_cast;
+create policy "Authenticated users can manage cast"
+  on public.movie_cast
+  for all
+  to authenticated
+  using (true)
+  with check (true);
+
 drop policy if exists "Theatres are publicly readable" on public.theatres;
 create policy "Theatres are publicly readable"
   on public.theatres
@@ -173,6 +201,9 @@ grant insert, update, delete on table public.locations to authenticated;
 
 grant select on table public.movies to anon, authenticated;
 grant insert, update, delete on table public.movies to authenticated;
+
+grant select on table public.movie_cast to anon, authenticated;
+grant insert, update, delete on table public.movie_cast to authenticated;
 
 grant select on table public.theatres to anon, authenticated;
 grant insert, update, delete on table public.theatres to authenticated;

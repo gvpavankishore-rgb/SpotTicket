@@ -11,8 +11,10 @@ import {
   Ticket,
 } from "lucide-react";
 import CatalogError from "@/components/CatalogError";
+import MovieCast from "@/components/MovieCast";
 import MovieShowtimes from "@/components/MovieShowtimes";
 import {
+  getCastForMovie,
   getMovieById,
   getUpcomingShowsForMovie,
 } from "@/lib/catalog";
@@ -57,7 +59,10 @@ export default async function MovieDetailPage({
     notFound();
   }
 
-  const { selected } = await getLocationContext();
+  const [{ selected }, { data: cast }] = await Promise.all([
+    getLocationContext(),
+    getCastForMovie(movie.id),
+  ]);
   const { data: shows, error: showsError } =
     await getUpcomingShowsForMovie(movie.id, selected?.id);
   const todayKey = getTodayDateKey();
@@ -139,6 +144,8 @@ export default async function MovieDetailPage({
           </div>
         </div>
       </section>
+
+      <MovieCast members={cast} />
 
       {showsError ? (
         <section className="mt-8">
