@@ -112,11 +112,45 @@ create index if not exists shows_movie_id_idx on public.shows (movie_id);
 create index if not exists shows_theatre_id_idx on public.shows (theatre_id);
 create index if not exists shows_date_time_idx on public.shows (show_date, show_time);
 
+create table if not exists public.snacks (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  price numeric(10, 2) not null check (price >= 0),
+  image_url text,
+  is_active boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+create unique index if not exists snacks_name_key
+  on public.snacks (lower(name));
+
+insert into public.snacks (name, price, image_url, is_active)
+select seed.name, seed.price, null, true
+from (
+  values
+    ('Popcorn (Small)', 120.00),
+    ('Popcorn (Medium)', 180.00),
+    ('Popcorn (Large)', 240.00),
+    ('Cool Drinks', 80.00),
+    ('Egg Puff', 60.00),
+    ('Samosa', 50.00),
+    ('Nachos', 180.00),
+    ('Burger', 200.00),
+    ('Coffee', 90.00),
+    ('Candy', 60.00)
+) as seed(name, price)
+where not exists (
+  select 1
+  from public.snacks snacks
+  where lower(snacks.name) = lower(seed.name)
+);
+
 alter table public.movies enable row level security;
 alter table public.movie_cast enable row level security;
 alter table public.theatres enable row level security;
 alter table public.shows enable row level security;
 alter table public.locations enable row level security;
+alter table public.snacks enable row level security;
 
 drop policy if exists "Active locations are publicly readable" on public.locations;
 create policy "Active locations are publicly readable"
@@ -196,6 +230,28 @@ create policy "Authenticated users can manage shows"
   using (true)
   with check (true);
 
+drop policy if exists "Active snacks are publicly readable" on public.snacks;
+create policy "Active snacks are publicly readable"
+  on public.snacks
+  for select
+  to anon
+  using (is_active = true);
+
+drop policy if exists "Authenticated users can read snacks" on public.snacks;
+create policy "Authenticated users can read snacks"
+  on public.snacks
+  for select
+  to authenticated
+  using (true);
+
+drop policy if exists "Authenticated users can manage snacks" on public.snacks;
+create policy "Authenticated users can manage snacks"
+  on public.snacks
+  for all
+  to authenticated
+  using (true)
+  with check (true);
+
 grant select on table public.locations to anon, authenticated;
 grant insert, update, delete on table public.locations to authenticated;
 
@@ -210,3 +266,7 @@ grant insert, update, delete on table public.theatres to authenticated;
 
 grant select on table public.shows to anon, authenticated;
 grant insert, update, delete on table public.shows to authenticated;
+
+grant select on table public.snacks to anon, authenticated;
+grant insert, update, delete on table public.snacks to authenticated;
+grant select on table public.snacks to service_role;

@@ -9,6 +9,7 @@ import {
   Film,
   LayoutDashboard,
   MapPin,
+  Popcorn,
 } from "lucide-react";
 
 interface AdminNavProps {
@@ -21,6 +22,7 @@ const navItems = [
   { label: "Locations", href: "/admin/locations", icon: MapPin, exact: false },
   { label: "Theatres", href: "/admin/theatres", icon: Building2, exact: false },
   { label: "Shows", href: "/admin/shows", icon: CalendarClock, exact: false },
+  { label: "Snacks", href: "/admin/snacks", icon: Popcorn, exact: false },
 ];
 
 export default function AdminNav({ userEmail }: AdminNavProps) {

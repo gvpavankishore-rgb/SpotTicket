@@ -11,6 +11,7 @@ import {
   Film,
   Home,
   MapPin,
+  Popcorn,
   Ticket,
 } from "lucide-react";
 import BookingStatusBadge from "@/components/BookingStatusBadge";
@@ -258,6 +259,33 @@ export default async function BookingSuccessPage({
             ))}
           </div>
         </div>
+
+        {booking.booking_items.length > 0 && (
+          <div className="border-t border-white/[0.06] p-5 sm:p-6">
+            <div className="flex items-center gap-2">
+              <Popcorn className="h-4 w-4 text-accent" />
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-accent">
+                Snacks &amp; drinks
+              </p>
+            </div>
+            <div className="mt-3 space-y-2">
+              {booking.booking_items.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between gap-3 text-xs"
+                >
+                  <span className="min-w-0 truncate text-zinc-300">
+                    {item.name}{" "}
+                    <span className="text-zinc-500">× {item.quantity}</span>
+                  </span>
+                  <span className="shrink-0 font-medium text-white">
+                    {formatPrice(item.line_total)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="space-y-2 border-t border-white/[0.06] bg-black/20 p-5 text-[11px] sm:p-6">
           <div className="flex items-start justify-between gap-4">

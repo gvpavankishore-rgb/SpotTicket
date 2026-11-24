@@ -30,6 +30,20 @@ create index if not exists booked_seats_booking_id_idx
 create index if not exists booked_seats_show_id_idx
   on public.booked_seats (show_id);
 
+create table if not exists public.booking_items (
+  id uuid primary key default gen_random_uuid(),
+  booking_id uuid not null references public.bookings (id) on delete cascade,
+  snack_id uuid,
+  name text not null,
+  unit_price numeric(10, 2) not null check (unit_price >= 0),
+  quantity integer not null check (quantity > 0),
+  line_total numeric(10, 2) not null check (line_total >= 0),
+  created_at timestamptz not null default now()
+);
+
+create index if not exists booking_items_booking_id_idx
+  on public.booking_items (booking_id);
+
 insert into public.booked_seats (booking_id, show_id, seat_number)
 select distinct on (b.show_id, upper(btrim(booked_seat.seat)))
   b.id,
@@ -76,12 +90,16 @@ as $$
   ) as booked;
 $$;
 
+drop function if exists public.confirm_booking(uuid, uuid, text[], numeric, text);
+drop function if exists public.confirm_booking(uuid, uuid, text[], numeric, text, jsonb);
+
 create or replace function public.confirm_booking(
   p_user_id uuid,
   p_show_id uuid,
   p_seats text[],
   p_total_amount numeric,
-  p_payment_id text
+  p_payment_id text,
+  p_items jsonb default '[]'::jsonb
 )
 returns uuid
 language plpgsql
@@ -93,6 +111,12 @@ declare
   v_existing_booking_id uuid;
   v_conflict_seat text;
   v_seats text[];
+  v_item jsonb;
+  v_snack_id uuid;
+  v_name text;
+  v_unit_price numeric;
+  v_quantity integer;
+  v_line_total numeric;
 begin
   if p_user_id is null
     or p_show_id is null
@@ -117,6 +141,14 @@ begin
     or cardinality(v_seats) = 0
     or cardinality(v_seats) > 10 then
     raise exception 'INVALID_BOOKING_DETAILS' using errcode = '22023';
+  end if;
+
+  if p_items is null then
+    p_items := '[]'::jsonb;
+  end if;
+
+  if jsonb_typeof(p_items) <> 'array' or jsonb_array_length(p_items) > 20 then
+    raise exception 'INVALID_BOOKING_ITEMS' using errcode = '22023';
   end if;
 
   select b.id
@@ -163,6 +195,43 @@ begin
   select v_booking_id, p_show_id, s.seat
   from unnest(v_seats) as s(seat);
 
+  for v_item in select value from jsonb_array_elements(p_items)
+  loop
+    v_name := btrim(coalesce(v_item->>'name', ''));
+    v_snack_id := nullif(v_item->>'snack_id', '')::uuid;
+    v_unit_price := nullif(v_item->>'unit_price', '')::numeric;
+    v_quantity := nullif(v_item->>'quantity', '')::integer;
+    v_line_total := nullif(v_item->>'line_total', '')::numeric;
+
+    if v_name = ''
+      or v_unit_price is null
+      or v_unit_price < 0
+      or v_quantity is null
+      or v_quantity < 1
+      or v_quantity > 20
+      or v_line_total is null
+      or v_line_total < 0 then
+      raise exception 'INVALID_BOOKING_ITEMS' using errcode = '22023';
+    end if;
+
+    insert into public.booking_items (
+      booking_id,
+      snack_id,
+      name,
+      unit_price,
+      quantity,
+      line_total
+    )
+    values (
+      v_booking_id,
+      v_snack_id,
+      v_name,
+      v_unit_price,
+      v_quantity,
+      v_line_total
+    );
+  end loop;
+
   return v_booking_id;
 exception
   when unique_violation then
@@ -183,14 +252,15 @@ $$;
 revoke all on function public.get_booked_seats(uuid) from public;
 grant execute on function public.get_booked_seats(uuid) to anon, authenticated;
 
-revoke all on function public.confirm_booking(uuid, uuid, text[], numeric, text)
+revoke all on function public.confirm_booking(uuid, uuid, text[], numeric, text, jsonb)
   from public;
 grant execute
-  on function public.confirm_booking(uuid, uuid, text[], numeric, text)
+  on function public.confirm_booking(uuid, uuid, text[], numeric, text, jsonb)
   to service_role;
 
 alter table public.bookings enable row level security;
 alter table public.booked_seats enable row level security;
+alter table public.booking_items enable row level security;
 
 drop policy if exists "Users can read their own bookings" on public.bookings;
 create policy "Users can read their own bookings"
@@ -207,3 +277,21 @@ grant select, insert on table public.bookings to service_role;
 
 revoke all on table public.booked_seats from anon, authenticated;
 grant select, insert, update, delete on table public.booked_seats to service_role;
+
+drop policy if exists "Users can read their own booking items" on public.booking_items;
+create policy "Users can read their own booking items"
+  on public.booking_items
+  for select
+  to authenticated
+  using (
+    exists (
+      select 1
+      from public.bookings bookings
+      where bookings.id = booking_items.booking_id
+        and bookings.user_id = auth.uid()
+    )
+  );
+
+revoke all on table public.booking_items from anon, authenticated;
+grant select on table public.booking_items to authenticated;
+grant select, insert on table public.booking_items to service_role;

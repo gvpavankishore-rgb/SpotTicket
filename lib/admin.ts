@@ -40,6 +40,15 @@ export interface ShowRecord {
   created_at: string;
 }
 
+export interface SnackRecord {
+  id: string;
+  name: string;
+  price: number;
+  image_url: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
 export interface MovieOption {
   id: string;
   title: string;

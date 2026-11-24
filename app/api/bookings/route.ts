@@ -8,6 +8,12 @@ import {
 } from "@/lib/razorpay";
 import { calculateSeatTotal, normalizeSeatIds } from "@/lib/seats";
 import {
+  normalizeSnackSelections,
+  priceSnackSelections,
+  type Snack,
+} from "@/lib/snacks";
+import { getActiveSnacks, getSnackSignature } from "@/lib/snacks-server";
+import {
   BOOKING_CLOSED_MESSAGE,
   isShowBookingClosed,
 } from "@/lib/show-time";
@@ -23,6 +29,7 @@ interface BookingRequestBody {
   razorpay_signature?: unknown;
   showId?: unknown;
   seats?: unknown;
+  snacks?: unknown;
 }
 
 function readString(value: unknown) {
@@ -60,8 +67,16 @@ export async function POST(request: Request) {
     const signature = readString(body.razorpay_signature);
     const showId = readString(body.showId);
     const seats = normalizeSeatIds(body.seats);
+    const snackSelections = normalizeSnackSelections(body.snacks);
 
-    if (!orderId || !paymentId || !signature || !showId || !seats) {
+    if (
+      !orderId ||
+      !paymentId ||
+      !signature ||
+      !showId ||
+      !seats ||
+      !snackSelections
+    ) {
       return NextResponse.json(
         { error: "The payment details are incomplete or invalid." },
         { status: 400 },
@@ -103,22 +118,55 @@ export async function POST(request: Request) {
       );
     }
 
+    const snacksResult = await getActiveSnacks();
+    const availableSnacks: Snack[] = snacksResult.data;
+
+    if (snacksResult.error && snackSelections.length > 0) {
+      return NextResponse.json(
+        {
+          error:
+            "Snacks are not available right now. Contact support with your payment ID.",
+        },
+        { status: 500 },
+      );
+    }
+
+    const snackPricing = priceSnackSelections(
+      snackSelections,
+      availableSnacks,
+    );
+
+    if (!snackPricing) {
+      return NextResponse.json(
+        {
+          error:
+            "One or more paid snacks are no longer available. Contact support with your payment ID.",
+        },
+        { status: 409 },
+      );
+    }
+
     const seatKey = seats.join(",");
     const seatTotal = calculateSeatTotal(price, seats);
-    const expectedAmount = Math.round(seatTotal * 100);
+    const totalAmount =
+      Math.round((seatTotal + snackPricing.total) * 100) / 100;
+    const expectedAmount = Math.round(totalAmount * 100);
+    const snacksHash = getSnackSignature(snackSelections);
     const order = await getRazorpayOrder(orderId);
+    const orderSnacksHash = order.notes?.snacks_hash ?? getSnackSignature([]);
 
     if (
       order.id !== orderId ||
       order.amount !== expectedAmount ||
       order.notes?.user_id !== user.id ||
       order.notes?.show_id !== show.id ||
-      order.notes?.seats !== seatKey
+      order.notes?.seats !== seatKey ||
+      orderSnacksHash !== snacksHash
     ) {
       return NextResponse.json(
         {
           error:
-            "These payment details do not match the selected show and seats.",
+            "These payment details do not match the selected show, seats, and snacks.",
         },
         { status: 400 },
       );
@@ -177,8 +225,15 @@ export async function POST(request: Request) {
         p_user_id: user.id,
         p_show_id: show.id,
         p_seats: seats,
-        p_total_amount: Number(seatTotal.toFixed(2)),
+        p_total_amount: Number(totalAmount.toFixed(2)),
         p_payment_id: paymentId,
+        p_items: snackPricing.items.map((item) => ({
+          snack_id: item.id,
+          name: item.name,
+          unit_price: Number(item.price.toFixed(2)),
+          quantity: item.quantity,
+          line_total: Number((item.price * item.quantity).toFixed(2)),
+        })),
       },
     );
 

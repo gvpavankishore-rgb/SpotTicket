@@ -10,6 +10,7 @@ import {
 } from "@/lib/catalog";
 import { formatShowDate, formatShowTime } from "@/lib/format";
 import { getLocationContext } from "@/lib/locations";
+import { getActiveSnacks } from "@/lib/snacks-server";
 import { getShowBookingStatus } from "@/lib/show-time";
 import { createClient } from "@/lib/supabase/server";
 
@@ -54,16 +55,21 @@ export default async function BookShowPage({ params }: BookShowPageProps) {
   }
 
   const supabase = createClient();
-  const [{ data: authData }, bookedSeatsResult, showtimesResult] =
-    await Promise.all([
-      supabase.auth.getUser(),
-      getBookedSeatsForShow(params.showId),
-      getShowtimesForMovieAtTheatreOnDate(
-        show.movie_id,
-        show.theatre_id,
-        show.show_date,
-      ),
-    ]);
+  const [
+    { data: authData },
+    bookedSeatsResult,
+    showtimesResult,
+    snacksResult,
+  ] = await Promise.all([
+    supabase.auth.getUser(),
+    getBookedSeatsForShow(params.showId),
+    getShowtimesForMovieAtTheatreOnDate(
+      show.movie_id,
+      show.theatre_id,
+      show.show_date,
+    ),
+    getActiveSnacks(),
+  ]);
   const user = authData.user;
   const backHref = show.movies ? `/movies/${show.movies.id}` : "/movies";
   const theatreName = show.theatres?.name ?? "SpotTicket";
@@ -83,7 +89,7 @@ export default async function BookShowPage({ params }: BookShowPageProps) {
   }));
 
   return (
-    <div className="pb-4">
+    <div className="pb-28 sm:pb-24">
       <Link
         href={backHref}
         className="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-400 transition-colors hover:text-accent"
@@ -127,6 +133,7 @@ export default async function BookShowPage({ params }: BookShowPageProps) {
             userEmail={user?.email ?? null}
             userPhone={user?.phone ?? null}
             bookedSeats={bookedSeatsResult.data}
+            snacks={snacksResult.data}
           />
         </div>
       )}

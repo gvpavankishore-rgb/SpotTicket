@@ -20,7 +20,9 @@ import {
 import HallMiniMap from "@/components/HallMiniMap";
 import SeatMap from "@/components/SeatMap";
 import SeatViewPreview from "@/components/SeatViewPreview";
+import SnackSelector from "@/components/SnackSelector";
 import { formatPrice, getErrorMessage } from "@/lib/format";
+
 import {
   MAX_SEATS_PER_BOOKING,
   SEAT_CATEGORIES,
@@ -30,7 +32,14 @@ import {
   getSeatCategory,
   getSeatPrice,
 } from "@/lib/seats";
+import {
+  MAX_SNACK_QUANTITY,
+  priceSnackSelections,
+  type Snack,
+  type SnackSelection,
+} from "@/lib/snacks";
 import { isShowBookingClosed } from "@/lib/show-time";
+
 
 const RAZORPAY_SCRIPT_ID = "razorpay-checkout-js";
 
@@ -59,7 +68,9 @@ interface SeatSelectionProps {
   userEmail: string | null;
   userPhone: string | null;
   bookedSeats?: string[];
+  snacks?: Snack[];
 }
+
 
 interface OrderResponse {
   orderId: string;
@@ -136,9 +147,14 @@ export default function SeatSelection({
   userEmail,
   userPhone,
   bookedSeats = [],
+  snacks = [],
 }: SeatSelectionProps) {
   const router = useRouter();
   const [selectedSeats, setSelectedSeats] = useState<Set<string>>(new Set());
+  const [snackQuantities, setSnackQuantities] = useState<Record<string, number>>(
+    {},
+  );
+
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -193,10 +209,30 @@ export default function SeatSelection({
       })),
     [selectedList, price],
   );
-  const totalAmount = useMemo(
+  const snackSelections = useMemo<SnackSelection[]>(
+    () =>
+      snacks.flatMap((snack) => {
+        const quantity = snackQuantities[snack.id] ?? 0;
+
+        return quantity > 0 ? [{ id: snack.id, quantity }] : [];
+      }),
+    [snacks, snackQuantities],
+  );
+  const snackPricing = useMemo(
+    () => priceSnackSelections(snackSelections, snacks),
+    [snackSelections, snacks],
+  );
+  const snackTotal = snackPricing?.total ?? 0;
+  const snackCount = snackSelections.reduce(
+    (sum, selection) => sum + selection.quantity,
+    0,
+  );
+  const seatTotal = useMemo(
     () => calculateSeatTotal(price, selectedList),
     [price, selectedList],
   );
+  const totalAmount = seatTotal + snackTotal;
+
   const categoryBreakdown = useMemo(
     () =>
       SEAT_CATEGORIES.flatMap((category) => {
@@ -240,6 +276,25 @@ export default function SeatSelection({
     }
   }, [previewSeat, selectedSeats]);
 
+  useEffect(() => {
+    const availableIds = new Set(snacks.map((snack) => snack.id));
+
+    setSnackQuantities((current) => {
+      const next: Record<string, number> = {};
+
+      for (const [id, quantity] of Object.entries(current)) {
+        if (availableIds.has(id)) {
+          next[id] = quantity;
+        }
+      }
+
+      return Object.keys(next).length === Object.keys(current).length
+        ? current
+        : next;
+    });
+  }, [snacks]);
+
+
   function toggleSeat(seatId: string) {
     if (bookedSeatSet.has(seatId) || isProcessing || isLocked) {
       return;
@@ -269,7 +324,37 @@ export default function SeatSelection({
     });
   }
 
+  function updateSnackQuantity(snackId: string, quantity: number) {
+    setError(null);
+    setSnackQuantities((current) => {
+      const nextQuantity = Math.max(
+        0,
+        Math.min(MAX_SNACK_QUANTITY, quantity),
+      );
+
+      if ((current[snackId] ?? 0) === nextQuantity) {
+        return current;
+      }
+
+      const next = { ...current };
+
+      if (nextQuantity === 0) {
+        delete next[snackId];
+      } else {
+        next[snackId] = nextQuantity;
+      }
+
+      return next;
+    });
+  }
+
+  function skipSnacks() {
+    setError(null);
+    setSnackQuantities({});
+  }
+
   async function handleProceed() {
+
     if (selectedList.length === 0 || isProcessing || isLocked) {
       return;
     }
@@ -295,7 +380,9 @@ export default function SeatSelection({
         body: JSON.stringify({
           showId,
           seats: selectedList,
+          snacks: snackSelections,
         }),
+
       });
       const orderPayload = await readJson<OrderResponse & ApiError>(
         orderResponse,
@@ -378,7 +465,9 @@ export default function SeatSelection({
                 razorpay_signature: response.razorpay_signature,
                 showId,
                 seats: selectedList,
+                snacks: snackSelections,
               }),
+
             });
             const bookingPayload = await readJson<{ bookingId?: string } & ApiError>(
               bookingResponse,
@@ -573,7 +662,9 @@ export default function SeatSelection({
         </section>
 
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start">
-          <section className="rounded-3xl border border-white/[0.06] bg-surface/80 p-3 shadow-[0_35px_90px_-60px_rgba(0,0,0,0.95)] backdrop-blur-sm sm:p-5">
+          <div className="space-y-4">
+            <section className="rounded-3xl border border-white/[0.06] bg-surface/80 p-3 shadow-[0_35px_90px_-60px_rgba(0,0,0,0.95)] backdrop-blur-sm sm:p-5">
+
             <div className="flex flex-wrap items-center justify-between gap-3 px-1 sm:px-0">
               <div>
                 <div className="flex items-center gap-2">
@@ -614,9 +705,19 @@ export default function SeatSelection({
                 onToggleSeat={toggleSeat}
               />
             </div>
-          </section>
+            </section>
+
+            <SnackSelector
+              snacks={snacks}
+              quantities={snackQuantities}
+              disabled={isProcessing || isLocked}
+              onQuantityChange={updateSnackQuantity}
+              onSkip={skipSnacks}
+            />
+          </div>
 
           <aside className="space-y-4 lg:sticky lg:top-24">
+
             <div className="hidden lg:block">
               <HallMiniMap
                 basePrice={price}
@@ -684,10 +785,20 @@ export default function SeatSelection({
                       </div>
                     ))}
 
+                    {snackTotal > 0 && (
+                      <div className="flex items-center justify-between gap-3 text-[11px]">
+                        <span className="text-zinc-400">Snacks</span>
+                        <span className="font-medium text-zinc-200">
+                          {formatPrice(snackTotal)}
+                        </span>
+                      </div>
+                    )}
+
                     <div className="mt-1 flex items-center justify-between gap-3 border-t border-white/[0.06] pt-2.5">
                       <span className="text-xs font-semibold text-white">
                         Total
                       </span>
+
                       <span className="text-lg font-bold text-accent">
                         {formatPrice(totalAmount)}
                       </span>
@@ -770,8 +881,16 @@ export default function SeatSelection({
             >
               {status ??
                 (selectedList.length > 0
-                  ? selectedList.join(", ")
+                  ? [
+                      selectedList.join(", "),
+                      snackCount > 0
+                        ? `${snackCount} snack${snackCount === 1 ? "" : "s"}`
+                        : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")
                   : "No seats selected")}
+
             </p>
           </div>
 

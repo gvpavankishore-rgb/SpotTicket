@@ -25,7 +25,7 @@ const socialLinks = [
   },
   {
     label: "Instagram",
-    href: "https://www.instagram.com/",
+    href: "https://www.instagram.com/spotticket",
     icon: <Instagram className="h-4 w-4" />,
   },
   {

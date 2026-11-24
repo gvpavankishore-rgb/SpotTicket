@@ -8,6 +8,7 @@ import {
   Clapperboard,
   Film,
   MapPin,
+  Popcorn,
   Plus,
   Ticket,
 } from "lucide-react";
@@ -96,6 +97,12 @@ export default async function AdminDashboardPage() {
       description: "Pair a movie with a theatre.",
       href: "/admin/shows",
       icon: Ticket,
+    },
+    {
+      label: "Manage snacks",
+      description: "Set concessions sold during booking.",
+      href: "/admin/snacks",
+      icon: Popcorn,
     },
   ];
 

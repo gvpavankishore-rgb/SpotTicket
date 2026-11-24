@@ -24,6 +24,15 @@ export interface BookingShowSummary {
   theatres: BookingTheatreSummary | null;
 }
 
+export interface BookingItem {
+  id: string;
+  snack_id: string | null;
+  name: string;
+  unit_price: number;
+  quantity: number;
+  line_total: number;
+}
+
 export interface BookingDetails {
   id: string;
   user_id: string;
@@ -34,6 +43,7 @@ export interface BookingDetails {
   status: string;
   created_at: string;
   shows: BookingShowSummary | null;
+  booking_items: BookingItem[];
 }
 
 type Embedded<T> = T | T[] | null;
@@ -44,9 +54,17 @@ interface RawBookingShow
   theatres: Embedded<BookingTheatreSummary>;
 }
 
-interface RawBooking extends Omit<BookingDetails, "shows" | "total_amount"> {
+interface RawBookingItem
+  extends Omit<BookingItem, "unit_price" | "line_total"> {
+  unit_price: number | string;
+  line_total: number | string;
+}
+
+interface RawBooking
+  extends Omit<BookingDetails, "shows" | "total_amount" | "booking_items"> {
   total_amount: number | string;
   shows: Embedded<RawBookingShow>;
+  booking_items: RawBookingItem[] | null;
 }
 
 const BOOKING_SELECT = `
@@ -65,6 +83,14 @@ const BOOKING_SELECT = `
     price,
     movies(id, title, poster_url),
     theatres(id, name, location)
+  ),
+  booking_items(
+    id,
+    snack_id,
+    name,
+    unit_price,
+    quantity,
+    line_total
   )
 `;
 
@@ -85,11 +111,23 @@ function singleRelation<T>(value: Embedded<T> | undefined) {
 
 function normalizeBooking(raw: RawBooking): BookingDetails {
   const show = singleRelation(raw.shows);
+  const bookingItems = Array.isArray(raw.booking_items)
+    ? raw.booking_items
+    : [];
 
   return {
     ...raw,
     seats: Array.isArray(raw.seats) ? raw.seats : [],
     total_amount: Number(raw.total_amount),
+    booking_items: bookingItems.map((item) => ({
+      ...item,
+      id: String(item.id),
+      snack_id: item.snack_id ? String(item.snack_id) : null,
+      name: String(item.name),
+      unit_price: Number(item.unit_price),
+      quantity: Number(item.quantity),
+      line_total: Number(item.line_total),
+    })),
     shows: show
       ? {
           ...show,

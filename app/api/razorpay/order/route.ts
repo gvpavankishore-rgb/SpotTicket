@@ -9,6 +9,12 @@ import {
   normalizeSeatIds,
 } from "@/lib/seats";
 import {
+  normalizeSnackSelections,
+  priceSnackSelections,
+  type Snack,
+} from "@/lib/snacks";
+import { getActiveSnacks, getSnackSignature } from "@/lib/snacks-server";
+import {
   BOOKING_CLOSED_MESSAGE,
   isShowBookingClosed,
 } from "@/lib/show-time";
@@ -21,6 +27,7 @@ export const runtime = "nodejs";
 interface OrderRequestBody {
   showId?: unknown;
   seats?: unknown;
+  snacks?: unknown;
 }
 
 export async function POST(request: Request) {
@@ -60,6 +67,15 @@ export async function POST(request: Request) {
       );
     }
 
+    const snackSelections = normalizeSnackSelections(body.snacks);
+
+    if (!snackSelections) {
+      return NextResponse.json(
+        { error: "The selected snacks are invalid. Please try again." },
+        { status: 400 },
+      );
+    }
+
     const { data: show, error: showError } = await getShowById(body.showId);
 
     if (showError) {
@@ -82,9 +98,46 @@ export async function POST(request: Request) {
 
     const price = Number(show.price);
     const seatTotal = calculateSeatTotal(price, seats);
-    const amount = Math.round(seatTotal * 100);
 
-    if (!Number.isFinite(price) || price <= 0 || amount < 100) {
+    if (!Number.isFinite(price) || price <= 0 || seatTotal <= 0) {
+      return NextResponse.json(
+        { error: "This show does not have a valid ticket price." },
+        { status: 400 },
+      );
+    }
+
+    const snacksResult = await getActiveSnacks();
+    const availableSnacks: Snack[] = snacksResult.data;
+
+    if (snacksResult.error && snackSelections.length > 0) {
+      return NextResponse.json(
+        {
+          error:
+            "Snacks are not available right now. Remove your snacks or try again.",
+        },
+        { status: 500 },
+      );
+    }
+
+    const snackPricing = priceSnackSelections(
+      snackSelections,
+      availableSnacks,
+    );
+
+    if (!snackPricing) {
+      return NextResponse.json(
+        {
+          error:
+            "One or more selected snacks are no longer available. Please review your snacks and try again.",
+        },
+        { status: 409 },
+      );
+    }
+
+    const totalAmount = Math.round((seatTotal + snackPricing.total) * 100) / 100;
+    const amount = Math.round(totalAmount * 100);
+
+    if (amount < 100) {
       return NextResponse.json(
         { error: "This show does not have a valid ticket price." },
         { status: 400 },
@@ -145,6 +198,7 @@ export async function POST(request: Request) {
         user_id: user.id,
         show_id: show.id,
         seats: seats.join(","),
+        snacks_hash: getSnackSignature(snackSelections),
       },
     });
 
