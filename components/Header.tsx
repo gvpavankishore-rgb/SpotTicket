@@ -55,7 +55,7 @@ export default function Header({
           ) : (
             <Link
               href="/login"
-              className="hidden rounded-full bg-accent px-3.5 py-2 text-xs font-semibold text-black transition-colors hover:bg-amber-400 min-[430px]:block"
+              className="cta-primary hidden rounded-full bg-accent px-3.5 py-2 text-xs font-semibold text-black transition-colors hover:bg-amber-400 min-[430px]:block"
             >
               Login
             </Link>

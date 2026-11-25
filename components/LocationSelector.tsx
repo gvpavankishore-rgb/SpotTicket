@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Check, ChevronDown, MapPin } from "lucide-react";
 import { LOCATION_COOKIE } from "@/lib/location-cookie";
 import type { LocationOption } from "@/lib/locations";
@@ -16,6 +16,7 @@ export default function LocationSelector({
   selectedLocationId,
 }: LocationSelectorProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const containerRef = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(false);
 
@@ -68,6 +69,10 @@ export default function LocationSelector({
     }
 
     router.refresh();
+  }
+
+  if (pathname === "/admin" || pathname.startsWith("/admin/")) {
+    return null;
   }
 
   if (locations.length === 0) {

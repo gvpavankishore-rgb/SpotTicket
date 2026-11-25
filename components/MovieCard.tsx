@@ -16,13 +16,13 @@ export default function MovieCard({
   const isComingSoon = status === "comingSoon";
 
   return (
-    <article className="group min-w-0">
+    <article className="movie-card group min-w-0">
       <Link
         href={`/movies/${movie.id}`}
         className="block rounded-[1.35rem] outline-none focus-visible:ring-2 focus-visible:ring-accent/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         aria-label={`View ${movie.title}`}
       >
-        <div className="relative aspect-[2/3] w-full overflow-hidden rounded-[1.35rem] border border-white/[0.07] bg-surface shadow-[0_20px_45px_-24px_rgba(0,0,0,0.95)] transition-all duration-500 ease-out group-hover:-translate-y-1.5 group-hover:border-accent/35 group-hover:shadow-[0_30px_65px_-24px_rgba(245,158,11,0.35)]">
+        <div className="movie-card-art relative aspect-[2/3] w-full overflow-hidden rounded-[1.35rem] border border-white/[0.07] bg-surface shadow-[0_20px_45px_-24px_rgba(0,0,0,0.95)]">
           {movie.poster_url ? (
             <Image
               src={movie.poster_url}

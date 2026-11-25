@@ -40,7 +40,7 @@ export default async function MovieDetailPage({
 
   if (error) {
     return (
-      <div>
+      <div className="animate-page-enter">
         <Link
           href="/movies"
           className="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-400 transition-colors hover:text-accent"
@@ -69,7 +69,7 @@ export default async function MovieDetailPage({
   const nowMs = Date.now();
 
   return (
-    <div>
+    <div className="animate-page-enter">
       <Link
         href="/movies"
         className="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-400 transition-colors hover:text-accent"

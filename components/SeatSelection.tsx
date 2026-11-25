@@ -901,7 +901,7 @@ export default function SeatSelection({
               selectedList.length === 0 || isProcessing || isLocked
             }
             aria-busy={isProcessing}
-            className="flex h-11 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-accent px-4 text-xs font-semibold text-black transition-colors hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-45 sm:px-5 sm:text-sm"
+            className="cta-primary flex h-11 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-accent px-4 text-xs font-semibold text-black transition-colors hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-45 sm:px-5 sm:text-sm"
           >
             {isLocked ? (
               <>

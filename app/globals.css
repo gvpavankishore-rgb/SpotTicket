@@ -104,6 +104,72 @@ body {
   animation: hero-float 7s ease-in-out infinite;
 }
 
+@keyframes hero-layer-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes hero-layer-float-deep {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-9px);
+  }
+}
+
+@keyframes hero-layer-float-near {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-12px);
+  }
+}
+
+@keyframes hero-sparkle-glow {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: scale(0.92);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+}
+
+.hero-character-float,
+.hero-popcorn-float,
+.hero-ticket-float,
+.hero-sparkle-float {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.hero-character-float {
+  animation: hero-layer-float 8.4s ease-in-out infinite;
+}
+
+.hero-popcorn-float {
+  animation: hero-layer-float-deep 6.8s ease-in-out -1.2s infinite;
+}
+
+.hero-ticket-float {
+  animation: hero-layer-float-near 5.8s ease-in-out -2.4s infinite;
+}
+
+.hero-sparkle-float {
+  animation: hero-sparkle-glow 4.6s ease-in-out infinite;
+}
+
 @keyframes seat-view-fade-in {
   from {
     opacity: 0;
@@ -132,11 +198,294 @@ body {
   animation: seat-view-rise 220ms ease-out both;
 }
 
+@keyframes seat-view-depth-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.seat-view-stage {
+  animation: seat-view-depth-in 460ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.seat-view-screen {
+  transition:
+    transform 520ms cubic-bezier(0.22, 1, 0.36, 1),
+    filter 520ms ease;
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-page-enter {
+  animation: page-enter 320ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+@keyframes ticket-reveal {
+  0% {
+    opacity: 0;
+    transform: perspective(1100px) rotateY(-12deg) rotateX(4deg) translateY(18px)
+      scale(0.96);
+  }
+  55% {
+    opacity: 1;
+    transform: perspective(1100px) rotateY(3deg) rotateX(-1deg) translateY(0)
+      scale(1.01);
+  }
+  100% {
+    opacity: 1;
+    transform: perspective(1100px) rotateY(0deg) rotateX(0deg) translateY(0)
+      scale(1);
+  }
+}
+
+.animate-ticket-reveal {
+  animation: ticket-reveal 760ms cubic-bezier(0.22, 1, 0.36, 1) 200ms backwards;
+  transform-origin: 50% 45%;
+  backface-visibility: hidden;
+}
+
+@keyframes success-check {
+  0% {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.12);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-success-check {
+  animation: success-check 520ms cubic-bezier(0.34, 1.56, 0.64, 1) 80ms
+    backwards;
+}
+
+@keyframes ticket-sparkle {
+  0% {
+    opacity: 0;
+    transform: scale(0.2) translateY(8px);
+  }
+  18% {
+    opacity: 1;
+  }
+  55% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.4) translateY(-14px);
+  }
+}
+
+.ticket-sparkle-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  overflow: hidden;
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+
+.ticket-sparkle-layer span {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-radius: 9999px;
+  background: radial-gradient(
+    circle,
+    #ffffff 0 25%,
+    rgba(245, 158, 11, 0.9) 45%,
+    transparent 72%
+  );
+  box-shadow: 0 0 12px 2px rgba(245, 158, 11, 0.45);
+  opacity: 0;
+  animation: ticket-sparkle 1.9s ease-out forwards;
+}
+
+.ticket-sparkle-layer span:nth-child(1) {
+  left: 8%;
+  top: 24%;
+  animation-delay: 360ms;
+}
+
+.ticket-sparkle-layer span:nth-child(2) {
+  left: 22%;
+  top: 62%;
+  animation-delay: 620ms;
+}
+
+.ticket-sparkle-layer span:nth-child(3) {
+  left: 38%;
+  top: 16%;
+  animation-delay: 480ms;
+}
+
+.ticket-sparkle-layer span:nth-child(4) {
+  left: 56%;
+  top: 74%;
+  animation-delay: 840ms;
+}
+
+.ticket-sparkle-layer span:nth-child(5) {
+  left: 72%;
+  top: 30%;
+  animation-delay: 560ms;
+}
+
+.ticket-sparkle-layer span:nth-child(6) {
+  left: 88%;
+  top: 54%;
+  animation-delay: 760ms;
+}
+
+.ticket-sparkle-layer span:nth-child(7) {
+  left: 46%;
+  top: 44%;
+  animation-delay: 960ms;
+}
+
+.ticket-sparkle-layer span:nth-child(8) {
+  left: 16%;
+  top: 84%;
+  animation-delay: 1080ms;
+}
+
+@keyframes seat-pop {
+  0% {
+    transform: perspective(320px) rotateX(-16deg) translateY(3px) scale(0.86);
+  }
+  55% {
+    transform: perspective(320px) rotateX(7deg) translateY(-4px) scale(1.14);
+  }
+  100% {
+    transform: perspective(320px) rotateX(0deg) translateY(-2px) scale(1.05);
+  }
+}
+
+.seat-map-button {
+  transform-style: preserve-3d;
+}
+
+.seat-button--selected {
+  animation: seat-pop 260ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  box-shadow:
+    0 12px 20px -8px rgba(245, 158, 11, 0.65),
+    0 0 20px -4px rgba(245, 158, 11, 0.4);
+}
+
+.cta-primary {
+  transition:
+    transform 200ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 220ms ease,
+    background-color 220ms ease,
+    border-color 220ms ease;
+}
+
+@media (hover: hover) {
+  .cta-primary:hover:not(:disabled) {
+    transform: translateY(-1px) scale(1.02);
+    box-shadow:
+      0 12px 30px -12px rgba(245, 158, 11, 0.65),
+      0 0 22px -10px rgba(236, 72, 153, 0.45);
+  }
+}
+
+.cta-primary:active:not(:disabled) {
+  transform: scale(0.97);
+  box-shadow: 0 8px 20px -12px rgba(245, 158, 11, 0.55);
+}
+
+.movie-card-art {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  transition:
+    transform 360ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 360ms ease,
+    box-shadow 360ms ease,
+    opacity 240ms ease;
+}
+
+@media (hover: hover) and (min-width: 768px) {
+  .movie-card:hover .movie-card-art {
+    transform: perspective(900px) rotateX(2.5deg) rotateY(-3.5deg)
+      translateY(-5px) scale(1.015);
+    border-color: rgba(245, 158, 11, 0.38);
+    box-shadow:
+      0 28px 65px -24px rgba(245, 158, 11, 0.5),
+      0 20px 55px -28px rgba(236, 72, 153, 0.35);
+  }
+}
+
+@media (hover: none) {
+  .movie-card:active .movie-card-art {
+    transform: scale(0.985);
+    opacity: 0.92;
+  }
+}
+
+@media (max-width: 640px) {
+  .animate-page-enter {
+    animation-duration: 260ms;
+  }
+
+  .hero-character-float,
+  .hero-popcorn-float,
+  .hero-ticket-float,
+  .hero-sparkle-float {
+    animation: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-seat-view-fade,
   .animate-seat-view-rise,
+  .seat-view-stage,
   .animate-marquee,
-  .animate-hero-float {
+  .animate-hero-float,
+  .hero-character-float,
+  .hero-popcorn-float,
+  .hero-ticket-float,
+  .hero-sparkle-float,
+  .animate-page-enter,
+  .animate-ticket-reveal,
+  .animate-success-check,
+  .ticket-sparkle-layer span,
+  .seat-button--selected {
     animation: none;
+  }
+
+  .ticket-sparkle-layer {
+    display: none;
+  }
+
+  .cta-primary,
+  .movie-card-art,
+  .seat-view-screen,
+  .seat-map-button {
+    transition: none;
+  }
+
+  .cta-primary:hover:not(:disabled),
+  .cta-primary:active:not(:disabled) {
+    transform: none;
+    box-shadow: none;
   }
 }

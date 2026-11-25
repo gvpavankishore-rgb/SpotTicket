@@ -34,7 +34,7 @@ interface BookingSuccessPageProps {
 
 function BookingState({ title, message }: { title: string; message: string }) {
   return (
-    <div className="mx-auto flex min-h-[60vh] max-w-md flex-col items-center justify-center text-center">
+    <div className="animate-page-enter mx-auto flex min-h-[60vh] max-w-md flex-col items-center justify-center text-center">
       <span className="flex h-16 w-16 items-center justify-center rounded-2xl border border-accent/20 bg-accent/10">
         <Ticket className="h-8 w-8 text-accent" strokeWidth={1.75} />
       </span>
@@ -43,7 +43,7 @@ function BookingState({ title, message }: { title: string; message: string }) {
       <div className="mt-6 flex flex-wrap justify-center gap-3">
         <Link
           href="/bookings"
-          className="inline-flex items-center gap-2 rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-amber-400"
+          className="cta-primary inline-flex items-center gap-2 rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-amber-400"
         >
           My bookings
           <ArrowRight className="h-4 w-4" />
@@ -117,14 +117,14 @@ export default async function BookingSuccessPage({
   }`;
 
   return (
-    <div className="relative mx-auto max-w-2xl">
+    <div className="animate-page-enter relative mx-auto max-w-2xl">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute left-1/2 top-0 h-44 w-44 -translate-x-1/2 rounded-full bg-accent/10 blur-3xl"
       />
 
       <div className="relative flex flex-col items-center text-center">
-        <span className="flex h-16 w-16 items-center justify-center rounded-2xl border border-emerald-500/25 bg-emerald-500/10 text-emerald-400 shadow-glow">
+        <span className="animate-success-check flex h-16 w-16 items-center justify-center rounded-2xl border border-emerald-500/25 bg-emerald-500/10 text-emerald-400 shadow-glow">
           <CheckCircle2 className="h-8 w-8" strokeWidth={1.75} />
         </span>
         <div className="mt-4 flex items-center gap-2">
@@ -142,11 +142,21 @@ export default async function BookingSuccessPage({
         </p>
       </div>
 
-      <div className="relative mt-6 overflow-hidden rounded-3xl border border-white/[0.08] bg-surface shadow-glow">
+      <div className="animate-ticket-reveal relative mt-6 overflow-hidden rounded-3xl border border-white/[0.08] bg-surface shadow-glow">
         <div
           aria-hidden="true"
           className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-accent to-transparent"
         />
+        <div aria-hidden="true" className="ticket-sparkle-layer">
+          <span />
+          <span />
+          <span />
+          <span />
+          <span />
+          <span />
+          <span />
+          <span />
+        </div>
 
         <div className="p-5 pt-6 sm:p-6 sm:pt-7">
           <div className="flex items-start gap-4">
@@ -307,7 +317,7 @@ export default async function BookingSuccessPage({
         <button
           type="button"
           title="Ticket download will be available soon"
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-accent px-4 text-sm font-semibold text-black transition-colors hover:bg-amber-400"
+          className="cta-primary inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-accent px-4 text-sm font-semibold text-black transition-colors hover:bg-amber-400"
         >
           <Download className="h-4 w-4" />
           Download Ticket

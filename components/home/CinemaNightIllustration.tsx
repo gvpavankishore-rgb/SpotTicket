@@ -289,10 +289,11 @@ export default function CinemaNightIllustration({
         strokeOpacity="0.24"
       />
 
-      <path
-        d="M286 292H326V330H286V292Z"
-        fill="url(#cinema-skin)"
-      />
+      <g className="hero-character-float">
+        <path
+          d="M286 292H326V330H286V292Z"
+          fill="url(#cinema-skin)"
+        />
       <path
         d="M252 252C246 200 270 172 304 172C344 172 360 202 354 250C352 282 342 304 324 314C334 286 334 258 326 238C306 254 282 258 264 248C260 272 260 292 268 312C250 302 246 278 252 252Z"
         fill="url(#cinema-hair)"
@@ -448,9 +449,11 @@ export default function CinemaNightIllustration({
         strokeWidth="12"
         strokeLinecap="round"
       />
+      </g>
 
-      <path
-        d="M236 402H326L311 494H251L236 402Z"
+      <g className="hero-popcorn-float">
+        <path
+          d="M236 402H326L311 494H251L236 402Z"
         fill="url(#cinema-bucket)"
         stroke="#fb7185"
         strokeOpacity="0.7"
@@ -496,8 +499,10 @@ export default function CinemaNightIllustration({
         strokeWidth="2.5"
         strokeLinecap="round"
       />
+      </g>
 
-      <g transform="rotate(-14 426 300)">
+      <g className="hero-ticket-float">
+        <g transform="rotate(-14 426 300)">
         <rect
           x="372"
           y="268"
@@ -540,6 +545,7 @@ export default function CinemaNightIllustration({
           d="M449 285L451 290L456 292L451 294L449 299L447 294L442 292L447 290L449 285Z"
           fill="#9f1239"
         />
+        </g>
       </g>
 
       <ellipse
@@ -559,7 +565,7 @@ export default function CinemaNightIllustration({
         transform="rotate(18 425 337)"
       />
 
-      <g fill="#f9a8d4">
+      <g className="hero-sparkle-float" fill="#f9a8d4">
         <path
           d="M374 236L378 246L388 250L378 254L374 264L370 254L360 250L370 246L374 236Z"
           opacity="0.8"

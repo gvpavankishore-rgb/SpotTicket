@@ -242,7 +242,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
           <button
             type="submit"
             disabled={loading || !isSupabaseConfigured}
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-accent text-sm font-semibold text-black transition-colors hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-50"
+            className="cta-primary flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-accent text-sm font-semibold text-black transition-colors hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading ? (
               <Loader2 className="h-4 w-4 animate-spin" />

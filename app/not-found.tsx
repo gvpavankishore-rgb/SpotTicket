@@ -4,7 +4,7 @@ import EmptyState from "@/components/EmptyState";
 
 export default function NotFound() {
   return (
-    <div className="flex min-h-[60vh] items-center justify-center">
+    <div className="animate-page-enter flex min-h-[60vh] items-center justify-center">
       <div className="w-full max-w-lg">
         <EmptyState
           icon={Film}
@@ -13,7 +13,7 @@ export default function NotFound() {
           action={
             <Link
               href="/movies"
-              className="rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-amber-400"
+              className="cta-primary rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-amber-400"
             >
               Browse movies
             </Link>

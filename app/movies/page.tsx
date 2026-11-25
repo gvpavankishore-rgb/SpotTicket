@@ -22,7 +22,7 @@ export default async function MoviesPage({ searchParams }: MoviesPageProps) {
     typeof searchParams?.search === "string" ? searchParams.search : "";
 
   return (
-    <div>
+    <div className="animate-page-enter">
       <div className="flex items-center gap-2">
         <span className="h-px w-5 bg-accent" />
         <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-accent">

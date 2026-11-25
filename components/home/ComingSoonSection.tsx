@@ -53,7 +53,7 @@ export default function ComingSoonSection({
             </p>
             <Link
               href="/movies"
-              className="group mt-5 inline-flex items-center gap-2 rounded-full bg-accent px-4 py-2 text-xs font-semibold text-black transition-colors hover:bg-amber-400"
+              className="cta-primary group mt-5 inline-flex items-center gap-2 rounded-full bg-accent px-4 py-2 text-xs font-semibold text-black transition-colors hover:bg-amber-400"
             >
               Browse movies
               <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />

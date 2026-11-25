@@ -398,7 +398,7 @@ export default function MovieShowtimes({
                 <button
                   type="button"
                   onClick={() => setTimeFilter("all")}
-                  className="mt-4 rounded-full bg-accent px-4 py-2 text-xs font-semibold text-black transition-colors hover:bg-amber-400"
+                  className="cta-primary mt-4 rounded-full bg-accent px-4 py-2 text-xs font-semibold text-black transition-colors hover:bg-amber-400"
                 >
                   Show all times
                 </button>
@@ -426,7 +426,7 @@ export default function MovieShowtimes({
                       setSelectedDate(nextAvailableDate.key);
                       setTimeFilter("all");
                     }}
-                    className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-accent px-4 py-2 text-xs font-semibold text-black transition-colors hover:bg-amber-400"
+                    className="cta-primary mt-4 inline-flex items-center gap-1.5 rounded-full bg-accent px-4 py-2 text-xs font-semibold text-black transition-colors hover:bg-amber-400"
                   >
                     <Ticket className="h-3.5 w-3.5" />
                     Show {describeDate(nextAvailableDate)}

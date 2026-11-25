@@ -157,11 +157,11 @@ export default function SeatMap({
                                           categoryPrice,
                                         )}`
                                 }
-                                className={`relative flex h-6 w-6 shrink-0 touch-manipulation items-center justify-center rounded-t-[6px] rounded-b-[3px] border text-[8px] font-semibold transition-all duration-150 sm:h-8 sm:w-8 sm:text-[9px] lg:h-9 lg:w-9 lg:text-[10px] ${
+                                className={`seat-map-button relative flex h-6 w-6 shrink-0 touch-manipulation items-center justify-center rounded-t-[6px] rounded-b-[3px] border text-[8px] font-semibold transition-all duration-200 sm:h-8 sm:w-8 sm:text-[9px] lg:h-9 lg:w-9 lg:text-[10px] ${
                                   isBooked
                                     ? "cursor-not-allowed border-white/[0.04] bg-white/[0.02] text-zinc-700"
                                     : isSelected
-                                      ? "scale-105 border-amber-300 bg-gradient-to-b from-amber-300 to-accent text-black shadow-[0_0_14px_rgba(245,158,11,0.35)]"
+                                      ? "seat-button--selected scale-105 border-amber-300 bg-gradient-to-b from-amber-300 to-accent text-black shadow-[0_0_14px_rgba(245,158,11,0.35)]"
                                       : isBest
                                         ? "border-accent/35 bg-[#1d1a12] text-amber-200/90 hover:-translate-y-0.5 hover:border-accent hover:bg-accent/20"
                                         : "border-white/10 bg-zinc-800/80 text-zinc-400 hover:-translate-y-0.5 hover:border-accent/60 hover:bg-zinc-700 hover:text-white"

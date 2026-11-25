@@ -6,7 +6,7 @@ export const metadata = {
 
 export default function LoginPage() {
   return (
-    <div className="mx-auto max-w-md py-4 sm:py-10">
+    <div className="animate-page-enter mx-auto max-w-md py-4 sm:py-10">
       <AuthForm mode="login" />
     </div>
   );

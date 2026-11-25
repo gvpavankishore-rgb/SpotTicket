@@ -38,13 +38,16 @@ function getSeatMetrics(seat: string) {
     rowLabel: SEAT_ROWS[rowIndex] ?? seat.charAt(0),
     rowBand,
     depth,
-    screenScale: 1.2 - depth * 0.55,
-    screenBrightness: 1 - depth * 0.18,
+    screenScale: 1.24 - depth * 0.52,
+    screenBrightness: 1.04 - depth * 0.2,
     rotateX: 6 + depth * 2,
     rotateY: clampedHorizontal * -24,
     shiftX: clampedHorizontal * -6,
-    shiftY: -8 + depth * 12,
-    perspective: 650 + depth * 350,
+    shiftY: -10 + depth * 14,
+    perspective: 620 + depth * 380,
+    glowOpacity: 0.85 - depth * 0.4,
+    silhouetteScale: 0.92 + depth * 0.22,
+    silhouetteOpacity: 0.5 + depth * 0.35,
   };
 }
 
@@ -220,11 +223,11 @@ export default function SeatViewPreview({
             )}
 
             <div
-              className="absolute inset-0 flex items-center justify-center"
+              className="seat-view-stage absolute inset-0 flex items-center justify-center"
               style={{ perspective: `${metrics.perspective}px` }}
             >
               <div
-                className="relative"
+                className="seat-view-screen relative"
                 style={{
                   width: "74%",
                   aspectRatio: "16 / 9",
@@ -233,7 +236,10 @@ export default function SeatViewPreview({
                   filter: `brightness(${metrics.screenBrightness})`,
                 }}
               >
-                <div className="absolute -inset-6 rounded-[45%] bg-accent/10 blur-2xl" />
+                <div
+                  className="absolute -inset-6 rounded-[45%] bg-accent/10 blur-2xl"
+                  style={{ opacity: metrics.glowOpacity }}
+                />
 
                 <div className="relative h-full w-full overflow-hidden rounded-[3px] border border-white/15 bg-black shadow-[0_0_65px_-6px_rgba(245,158,11,0.4)]">
                   <div className="absolute inset-0">
@@ -338,7 +344,14 @@ export default function SeatViewPreview({
               </div>
             </div>
 
-            <div className="pointer-events-none absolute inset-x-4 -bottom-4 flex items-end justify-center gap-1 sm:gap-2">
+            <div
+              className="pointer-events-none absolute inset-x-4 -bottom-4 flex items-end justify-center gap-1 sm:gap-2"
+              style={{
+                transform: `scale(${metrics.silhouetteScale})`,
+                transformOrigin: "bottom center",
+                opacity: metrics.silhouetteOpacity,
+              }}
+            >
               {Array.from({ length: 7 }).map((_, index) => (
                 <div
                   key={index}

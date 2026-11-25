@@ -28,7 +28,7 @@ export default async function HomePage() {
   const comingSoonMovies = comingSoonResult.data.slice(0, 6);
 
   return (
-    <div>
+    <div className="animate-page-enter">
       <HomeHero
         locationName={locationName}
         featuredMovie={featuredMovie}

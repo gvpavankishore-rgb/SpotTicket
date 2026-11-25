@@ -32,7 +32,7 @@ export default async function ProfilePage() {
   }
 
   return (
-    <div>
+    <div className="animate-page-enter">
       <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
         Profile
       </h1>
@@ -55,7 +55,7 @@ export default async function ProfilePage() {
         {!userEmail && (
           <Link
             href="/login"
-            className="shrink-0 rounded-full bg-accent px-3.5 py-2 text-xs font-semibold text-black transition-colors hover:bg-amber-400"
+            className="cta-primary shrink-0 rounded-full bg-accent px-3.5 py-2 text-xs font-semibold text-black transition-colors hover:bg-amber-400"
           >
             Login
           </Link>

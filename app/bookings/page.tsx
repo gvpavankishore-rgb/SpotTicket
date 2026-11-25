@@ -38,7 +38,7 @@ export default async function BookingsPage() {
   const { data: bookings, error } = await getBookingsForUser(user.id);
 
   return (
-    <div>
+    <div className="animate-page-enter">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
@@ -84,7 +84,7 @@ export default async function BookingsPage() {
             action={
               <Link
                 href="/movies"
-                className="inline-flex items-center rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-amber-400"
+                className="cta-primary inline-flex items-center rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-amber-400"
               >
                 Explore movies
               </Link>

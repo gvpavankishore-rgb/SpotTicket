@@ -35,7 +35,7 @@ export default async function BookShowPage({ params }: BookShowPageProps) {
 
   if (error) {
     return (
-      <div>
+      <div className="animate-page-enter">
         <Link
           href="/movies"
           className="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-400 transition-colors hover:text-accent"
@@ -89,7 +89,7 @@ export default async function BookShowPage({ params }: BookShowPageProps) {
   }));
 
   return (
-    <div className="pb-28 sm:pb-24">
+    <div className="animate-page-enter pb-28 sm:pb-24">
       <Link
         href={backHref}
         className="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-400 transition-colors hover:text-accent"
