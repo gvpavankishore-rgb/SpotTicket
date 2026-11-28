@@ -33,6 +33,8 @@ const emptyForm = {
   poster_url: "",
   trailer_url: "",
   description: "",
+  is_3d: false,
+  glass_charge: "30",
 };
 
 type MovieForm = typeof emptyForm;
@@ -219,6 +221,8 @@ export default function MoviesManager() {
       poster_url: movie.poster_url,
       trailer_url: movie.trailer_url ?? "",
       description: movie.description ?? "",
+      is_3d: movie.is_3d === true,
+      glass_charge: String(movie.glass_charge ?? 30),
     });
     setCastItems([]);
     setError(null);
@@ -258,6 +262,7 @@ export default function MoviesManager() {
     setError(null);
     setNotice(null);
 
+    const glassCharge = Number(form.glass_charge);
     const payload = {
       title: form.title.trim(),
       language: form.language.trim(),
@@ -266,6 +271,12 @@ export default function MoviesManager() {
       poster_url: form.poster_url.trim(),
       trailer_url: form.trailer_url.trim() || null,
       description: form.description.trim() || null,
+      is_3d: form.is_3d,
+      glass_charge: form.is_3d
+        ? Number.isFinite(glassCharge) && glassCharge >= 0
+          ? glassCharge
+          : NaN
+        : 0,
     };
 
     if (
@@ -276,6 +287,11 @@ export default function MoviesManager() {
       !payload.poster_url
     ) {
       setError("Please fill in all required fields.");
+      return;
+    }
+
+    if (!Number.isFinite(payload.glass_charge) || payload.glass_charge < 0) {
+      setError("3D glass charge must be zero or greater.");
       return;
     }
 
@@ -508,6 +524,35 @@ export default function MoviesManager() {
               />
             </Field>
 
+            <div className="rounded-xl border border-white/[0.06] bg-black/20 p-3">
+              <label className="flex items-center gap-2 text-sm font-medium text-white">
+                <input
+                  type="checkbox"
+                  checked={form.is_3d}
+                  onChange={(event) => updateField("is_3d", event.target.checked)}
+                  className="h-4 w-4 rounded border-white/20 bg-black/40 text-accent accent-[#f59e0b]"
+                />
+                This is a 3D Movie
+              </label>
+              <div className="mt-3">
+                <Field label="3D Glass Charge (₹)" htmlFor="movie-glass-charge">
+                  <TextInput
+                    id="movie-glass-charge"
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    inputMode="decimal"
+                    value={form.glass_charge}
+                    onChange={(event) =>
+                      updateField("glass_charge", event.target.value)
+                    }
+                    disabled={!form.is_3d}
+                    placeholder="30"
+                  />
+                </Field>
+              </div>
+            </div>
+
             <div className="border-t border-white/[0.06] pt-4">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
@@ -686,6 +731,7 @@ export default function MoviesManager() {
                     <th className="px-4 py-3">Genre</th>
                     <th className="px-4 py-3">Language</th>
                     <th className="px-4 py-3">Duration</th>
+                    <th className="px-4 py-3">Format</th>
                     <th className="px-4 py-3">Cast</th>
                     <th className="px-4 py-3 text-right">Actions</th>
                   </tr>
@@ -730,6 +776,15 @@ export default function MoviesManager() {
                       </td>
                       <td className="px-4 py-3 text-sm text-zinc-300">
                         {movie.duration}
+                      </td>
+                      <td className="px-4 py-3">
+                        {movie.is_3d ? (
+                          <span className="inline-flex rounded-full border border-accent/30 bg-accent/10 px-2 py-1 text-[11px] font-semibold text-accent">
+                            3D · {Number(movie.glass_charge ?? 0) > 0 ? `₹${movie.glass_charge}` : "No glass charge"}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-zinc-500">2D</span>
+                        )}
                       </td>
                       <td className="px-4 py-3">
                         <span className="inline-flex rounded-full border border-white/[0.08] bg-white/[0.03] px-2 py-1 text-[11px] font-medium text-zinc-300">

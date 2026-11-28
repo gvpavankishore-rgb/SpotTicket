@@ -15,6 +15,7 @@ interface SeatMapProps {
   selectedSeats: Set<string>;
   isProcessing: boolean;
   isLocked?: boolean;
+  is3D?: boolean;
   onToggleSeat: (seat: string) => void;
 }
 
@@ -60,12 +61,19 @@ export default function SeatMap({
   selectedSeats,
   isProcessing,
   isLocked = false,
+  is3D = false,
   onToggleSeat,
 }: SeatMapProps) {
   return (
-    <div>
+    <div className={is3D ? "relative" : undefined}>
+      {is3D && (
+        <div className="pointer-events-none absolute inset-x-[8%] top-10 h-40 rounded-full bg-accent/10 blur-3xl" aria-hidden="true" />
+      )}
       <div className="no-scrollbar overflow-x-auto pb-2">
-        <div className="mx-auto w-max min-w-full px-1">
+        <div
+          className={`mx-auto w-max min-w-full px-1 ${is3D ? "origin-top [transform:perspective(1200px)_rotateX(14deg)_scale(0.985)] sm:[transform:perspective(1400px)_rotateX(16deg)_scale(1)]" : ""}`}
+          style={is3D ? { transformStyle: "preserve-3d" } : undefined}
+        >
           {SEAT_CATEGORIES.map((category) => {
             const categoryPrice = getCategoryPrice(basePrice, category);
             const availableCount = category.rows.reduce(
@@ -161,10 +169,10 @@ export default function SeatMap({
                                   isBooked
                                     ? "cursor-not-allowed border-white/[0.04] bg-white/[0.02] text-zinc-700"
                                     : isSelected
-                                      ? "seat-button--selected scale-105 border-amber-300 bg-gradient-to-b from-amber-300 to-accent text-black shadow-[0_0_14px_rgba(245,158,11,0.35)]"
+                                      ? `seat-button--selected border-amber-200 bg-gradient-to-b from-amber-200 via-amber-300 to-accent text-black ${is3D ? "scale-110 shadow-[0_0_0_1px_rgba(251,191,36,0.6),0_10px_22px_rgba(245,158,11,0.45),0_0_28px_rgba(245,158,11,0.55)] -translate-y-0.5" : "scale-105 shadow-[0_0_14px_rgba(245,158,11,0.35)]"}`
                                       : isBest
-                                        ? "border-accent/35 bg-[#1d1a12] text-amber-200/90 hover:-translate-y-0.5 hover:border-accent hover:bg-accent/20"
-                                        : "border-white/10 bg-zinc-800/80 text-zinc-400 hover:-translate-y-0.5 hover:border-accent/60 hover:bg-zinc-700 hover:text-white"
+                                        ? `border-accent/35 bg-[#1d1a12] text-amber-200/90 hover:-translate-y-0.5 hover:border-accent hover:bg-accent/20 ${is3D ? "shadow-[0_0_12px_rgba(245,158,11,0.12)]" : ""}`
+                                        : `border-white/10 bg-zinc-800/80 text-zinc-400 hover:-translate-y-0.5 hover:border-accent/60 hover:bg-zinc-700 hover:text-white ${is3D ? "shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]" : ""}`
                                 } ${
                                   isLocked && !isBooked
                                     ? "cursor-not-allowed opacity-50"
@@ -202,9 +210,9 @@ export default function SeatMap({
           })}
 
           <div className="mx-auto mt-7 max-w-lg px-8 pb-1">
-            <div className="h-1 rounded-[100%] bg-gradient-to-r from-transparent via-accent/80 to-transparent shadow-[0_0_28px_rgba(245,158,11,0.32)]" />
+            <div className={`${is3D ? "h-1.5 shadow-[0_0_40px_rgba(245,158,11,0.5)]" : "h-1 shadow-[0_0_28px_rgba(245,158,11,0.32)]"} rounded-[100%] bg-gradient-to-r from-transparent via-accent/80 to-transparent`} />
             <p className="mt-2 text-center text-[9px] font-semibold uppercase tracking-[0.38em] text-accent/70">
-              Screen this way
+              {is3D ? "3D screen this way" : "Screen this way"}
             </p>
           </div>
         </div>

@@ -13,6 +13,7 @@ interface HallMiniMapProps {
   bookedSeats: Set<string>;
   selectedSeats: Set<string>;
   activeSeat: string | null;
+  is3D?: boolean;
 }
 
 export default function HallMiniMap({
@@ -20,16 +21,17 @@ export default function HallMiniMap({
   bookedSeats,
   selectedSeats,
   activeSeat,
+  is3D = false,
 }: HallMiniMapProps) {
   const activeCategoryId = activeSeat
     ? getSeatCategory(activeSeat).id
     : null;
 
   return (
-    <section className="rounded-3xl border border-white/[0.06] bg-surface/80 p-4">
+    <section className={`rounded-3xl border bg-surface/80 p-4 ${is3D ? "border-accent/20 shadow-[0_0_30px_rgba(245,158,11,0.08)]" : "border-white/[0.06]"}`}>
       <div className="flex items-center justify-between gap-2">
         <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-400">
-          Hall overview
+          {is3D ? "3D hall overview" : "Hall overview"}
         </p>
         <span className="text-[9px] font-medium text-zinc-600">
           {selectedSeats.size} selected

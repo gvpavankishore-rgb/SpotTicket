@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getBookedSeatsForShow } from "@/lib/bookings";
 import { getShowById } from "@/lib/catalog";
 import { formatShowDate, formatShowTime, getErrorMessage } from "@/lib/format";
+import { calculateBookingCharges, roundMoney } from "@/lib/pricing";
 import { createRazorpayOrder, getRazorpayConfig } from "@/lib/razorpay";
 import {
   MAX_SEATS_PER_BOOKING,
@@ -18,7 +19,7 @@ import {
   BOOKING_CLOSED_MESSAGE,
   isShowBookingClosed,
 } from "@/lib/show-time";
-import { isSupabaseAdminConfigured } from "@/lib/supabase/admin";
+import { createAdminClient, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -28,6 +29,7 @@ interface OrderRequestBody {
   showId?: unknown;
   seats?: unknown;
   snacks?: unknown;
+  holdId?: unknown;
 }
 
 export async function POST(request: Request) {
@@ -76,6 +78,8 @@ export async function POST(request: Request) {
       );
     }
 
+    const holdId = typeof body.holdId === "string" ? body.holdId.trim() : "";
+
     const { data: show, error: showError } = await getShowById(body.showId);
 
     if (showError) {
@@ -98,6 +102,10 @@ export async function POST(request: Request) {
 
     const price = Number(show.price);
     const seatTotal = calculateSeatTotal(price, seats);
+    const glassCharge = show.movies?.is_3d
+      ? Math.max(0, Number(show.movies.glass_charge ?? 0) || 0)
+      : 0;
+    const glassTotal = glassCharge * seats.length;
 
     if (!Number.isFinite(price) || price <= 0 || seatTotal <= 0) {
       return NextResponse.json(
@@ -134,7 +142,10 @@ export async function POST(request: Request) {
       );
     }
 
-    const totalAmount = Math.round((seatTotal + snackPricing.total) * 100) / 100;
+    const bookingCharges = calculateBookingCharges();
+    const totalAmount = roundMoney(
+      seatTotal + glassTotal + snackPricing.total + bookingCharges.total,
+    );
     const amount = Math.round(totalAmount * 100);
 
     if (amount < 100) {
@@ -142,6 +153,38 @@ export async function POST(request: Request) {
         { error: "This show does not have a valid ticket price." },
         { status: 400 },
       );
+    }
+
+    if (!isSupabaseAdminConfigured) {
+      return NextResponse.json(
+        {
+          error:
+            "Booking storage is not configured. Add SUPABASE_SERVICE_ROLE_KEY to .env.local before accepting payments.",
+        },
+        { status: 500 },
+      );
+    }
+
+    const adminSupabase = createAdminClient();
+    if (holdId) {
+      const { data: hold } = await adminSupabase
+        .from("seat_holds")
+        .select("id, user_id, show_id, seats, expires_at")
+        .eq("id", holdId)
+        .maybeSingle();
+
+      const holdSeats = Array.isArray(hold?.seats)
+        ? (hold.seats as string[]).map((s) => s.toUpperCase()).sort()
+        : [];
+      const holdExpired = !hold?.expires_at || new Date(hold.expires_at).getTime() <= Date.now();
+      const seatsMatch = holdSeats.length === seats.length && holdSeats.every((s, i) => s === seats[i]);
+
+      if (!hold || hold.user_id !== user.id || hold.show_id !== show.id || holdExpired || !seatsMatch) {
+        return NextResponse.json(
+          { error: "Your seat hold expired or is invalid. Please select seats again.", code: "HOLD_EXPIRED" },
+          { status: 409 },
+        );
+      }
     }
 
     const { data: bookedSeats, error: availabilityError } =
@@ -173,16 +216,6 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!isSupabaseAdminConfigured) {
-      return NextResponse.json(
-        {
-          error:
-            "Booking storage is not configured. Add SUPABASE_SERVICE_ROLE_KEY to .env.local before accepting payments.",
-        },
-        { status: 500 },
-      );
-    }
-
     const movieTitle = show.movies?.title ?? "Movie";
     const theatreName = show.theatres?.name ?? "SpotTicket";
     const showLabel = `${formatShowDate(show.show_date)} at ${formatShowTime(
@@ -199,6 +232,7 @@ export async function POST(request: Request) {
         show_id: show.id,
         seats: seats.join(","),
         snacks_hash: getSnackSignature(snackSelections),
+        hold_id: holdId || "",
       },
     });
 

@@ -268,6 +268,16 @@ export default async function BookingSuccessPage({
               </span>
             ))}
           </div>
+          {booking.glass_total > 0 && (
+            <div className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-white/[0.06] bg-black/20 px-3 py-2.5 text-xs">
+              <span className="text-zinc-400">
+                3D Glass charges · {booking.glass_quantity}
+              </span>
+              <span className="font-medium text-white">
+                {formatPrice(booking.glass_total)}
+              </span>
+            </div>
+          )}
         </div>
 
         {booking.booking_items.length > 0 && (

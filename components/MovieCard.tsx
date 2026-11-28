@@ -55,9 +55,16 @@ export default function MovieCard({
             </span>
           )}
 
-          <span className="absolute right-2.5 top-2.5 rounded-full border border-white/10 bg-black/60 px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-white/85 backdrop-blur-md">
-            {movie.language}
-          </span>
+          <div className="absolute right-2.5 top-2.5 flex flex-col items-end gap-1.5">
+            <span className="rounded-full border border-white/10 bg-black/60 px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-white/85 backdrop-blur-md">
+              {movie.language}
+            </span>
+            {movie.is_3d && (
+              <span className="rounded-full border border-accent/30 bg-accent px-2 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-black">
+                3D
+              </span>
+            )}
+          </div>
 
           <span className="absolute bottom-2.5 left-2.5 max-w-[58%] truncate rounded-md bg-accent px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-black">
             {movie.genre}

@@ -11,6 +11,8 @@ export interface MovieRecord {
   poster_url: string;
   trailer_url: string | null;
   description: string | null;
+  is_3d: boolean;
+  glass_charge: number;
   created_at: string;
 }
 

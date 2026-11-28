@@ -11,10 +11,11 @@ interface SeatViewPreviewProps {
   movieTitle: string;
   posterUrl?: string | null;
   trailerUrl?: string | null;
+  is3D?: boolean;
   onClose: () => void;
 }
 
-function getSeatMetrics(seat: string) {
+function getSeatMetrics(seat: string, is3D = false) {
   const match = /^([A-Z])(\d+)$/.exec(seat.toUpperCase());
   const rowIndex = match
     ? Math.max(0, (SEAT_ROWS as readonly string[]).indexOf(match[1]))
@@ -32,21 +33,22 @@ function getSeatMetrics(seat: string) {
   const clampedHorizontal = Math.max(-1, Math.min(1, horizontal));
   const rowBand =
     depth < 0.34 ? "Front row" : depth < 0.67 ? "Middle row" : "Back row";
+  const depth3D = is3D ? 1.12 : 1;
 
   return {
     rowIndex,
     rowLabel: SEAT_ROWS[rowIndex] ?? seat.charAt(0),
     rowBand,
     depth,
-    screenScale: 1.24 - depth * 0.52,
-    screenBrightness: 1.04 - depth * 0.2,
-    rotateX: 6 + depth * 2,
-    rotateY: clampedHorizontal * -24,
-    shiftX: clampedHorizontal * -6,
-    shiftY: -10 + depth * 14,
-    perspective: 620 + depth * 380,
-    glowOpacity: 0.85 - depth * 0.4,
-    silhouetteScale: 0.92 + depth * 0.22,
+    screenScale: (1.24 - depth * 0.52) * (is3D ? 1.08 : 1),
+    screenBrightness: (1.04 - depth * 0.2) * (is3D ? 1.04 : 1),
+    rotateX: (6 + depth * 2) * depth3D,
+    rotateY: clampedHorizontal * (is3D ? -30 : -24),
+    shiftX: clampedHorizontal * (is3D ? -7.5 : -6),
+    shiftY: (-10 + depth * 14) * (is3D ? 0.9 : 1),
+    perspective: is3D ? 560 + depth * 300 : 620 + depth * 380,
+    glowOpacity: (0.85 - depth * 0.4) * (is3D ? 1.25 : 1),
+    silhouetteScale: (0.92 + depth * 0.22) * (is3D ? 1.04 : 1),
     silhouetteOpacity: 0.5 + depth * 0.35,
   };
 }
@@ -56,6 +58,7 @@ export default function SeatViewPreview({
   movieTitle,
   posterUrl,
   trailerUrl,
+  is3D = false,
   onClose,
 }: SeatViewPreviewProps) {
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -70,7 +73,7 @@ export default function SeatViewPreview({
   const isMutedRef = useRef(isMuted);
   isMutedRef.current = isMuted;
 
-  const metrics = useMemo(() => getSeatMetrics(seat), [seat]);
+  const metrics = useMemo(() => getSeatMetrics(seat, is3D), [seat, is3D]);
   const trailer = useMemo(() => getTrailerSource(trailerUrl), [trailerUrl]);
   const fallbackImage =
     posterUrl ||
@@ -167,6 +170,11 @@ export default function SeatViewPreview({
               <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-accent">
                 View from seat
               </span>
+              {is3D && (
+                <span className="rounded-full border border-accent/30 bg-accent/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em] text-accent">
+                  3D immersive
+                </span>
+              )}
             </div>
             <h2
               id="seat-view-title"
@@ -240,6 +248,13 @@ export default function SeatViewPreview({
                   className="absolute -inset-6 rounded-[45%] bg-accent/10 blur-2xl"
                   style={{ opacity: metrics.glowOpacity }}
                 />
+                {is3D && (
+                  <>
+                    <div className="absolute -inset-10 rounded-[45%] bg-cyan-400/10 blur-3xl" style={{ opacity: metrics.glowOpacity * 0.45 }} />
+                    <div className="absolute -left-8 top-[8%] h-[72%] w-10 rounded-full bg-cyan-400/10 blur-xl" />
+                    <div className="absolute -right-8 top-[8%] h-[72%] w-10 rounded-full bg-rose-400/10 blur-xl" />
+                  </>
+                )}
 
                 <div className="relative h-full w-full overflow-hidden rounded-[3px] border border-white/15 bg-black shadow-[0_0_65px_-6px_rgba(245,158,11,0.4)]">
                   <div className="absolute inset-0">
@@ -374,12 +389,11 @@ export default function SeatViewPreview({
             </span>
             <div className="min-w-0">
               <p className="text-xs font-semibold leading-relaxed text-white sm:text-sm">
-                This is how the movie will look from your seat.
+                {is3D ? "Immersive 3D perspective from your seat." : "This is how the movie will look from your seat."}
               </p>
               <p className="mt-0.5 flex items-center gap-1.5 text-[11px] text-zinc-500">
                 <Film className="h-3 w-3 shrink-0 text-accent/70" />
-                Seat {seat} · {metrics.rowBand} perspective · {metrics.rowLabel}{" "}
-                row
+                Seat {seat} • {metrics.rowBand} perspective • {metrics.rowLabel} row{is3D ? " • 3D depth enhanced" : ""}
               </p>
             </div>
           </div>

@@ -1,8 +1,8 @@
 ﻿"use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   AlertCircle,
   Armchair,
@@ -38,7 +38,9 @@ import {
   type Snack,
   type SnackSelection,
 } from "@/lib/snacks";
+import { getSeatHoldStorageKey, type StoredSeatHold } from "@/lib/seat-hold";
 import { isShowBookingClosed } from "@/lib/show-time";
+import SeatHoldTimer from "@/components/SeatHoldTimer";
 
 
 const RAZORPAY_SCRIPT_ID = "razorpay-checkout-js";
@@ -65,6 +67,8 @@ interface SeatSelectionProps {
   showtimeOptions: ShowtimeOption[];
   bookingClosed?: boolean;
   isLoggedIn: boolean;
+  is3D?: boolean;
+  glassCharge?: number;
   userEmail: string | null;
   userPhone: string | null;
   bookedSeats?: string[];
@@ -144,26 +148,37 @@ export default function SeatSelection({
   showtimeOptions,
   bookingClosed = false,
   isLoggedIn,
+  is3D = false,
+  glassCharge = 0,
   userEmail,
   userPhone,
   bookedSeats = [],
   snacks = [],
 }: SeatSelectionProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [selectedSeats, setSelectedSeats] = useState<Set<string>>(new Set());
   const [snackQuantities, setSnackQuantities] = useState<Record<string, number>>(
     {},
   );
+  const [hold, setHold] = useState<StoredSeatHold | null>(null);
 
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [previewSeat, setPreviewSeat] = useState<string | null>(null);
   const [showClosedNow, setShowClosedNow] = useState(bookingClosed);
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
     setShowClosedNow(bookingClosed);
   }, [bookingClosed]);
+
+  useEffect(() => {
+    if (searchParams.get("expired") === "1") {
+      setError("Session expired, please select seats again.");
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (bookingClosed) {
@@ -178,6 +193,53 @@ export default function SeatSelection({
 
     return () => window.clearInterval(interval);
   }, [bookingClosed, showDate, showTime]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const raw = window.sessionStorage.getItem(getSeatHoldStorageKey(showId));
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw) as Partial<StoredSeatHold>;
+        if (
+          parsed &&
+          parsed.showId === showId &&
+          Array.isArray(parsed.seats) &&
+          typeof parsed.expiresAt === "string"
+        ) {
+          const expiresAt = new Date(parsed.expiresAt).getTime();
+          if (Number.isFinite(expiresAt) && expiresAt > Date.now()) {
+            setHold({
+              holdId: typeof parsed.holdId === "string" ? parsed.holdId : "",
+              showId,
+              seats: parsed.seats.filter((s): s is string => typeof s === "string"),
+              snacks: Array.isArray(parsed.snacks)
+                ? parsed.snacks.filter(
+                    (s): s is { id: string; quantity: number } =>
+                      Boolean(s) &&
+                      typeof (s as { id?: unknown }).id === "string" &&
+                      typeof (s as { quantity?: unknown }).quantity === "number",
+                  )
+                : [],
+              expiresAt: parsed.expiresAt,
+            });
+            setSelectedSeats(new Set(parsed.seats.filter((s): s is string => typeof s === "string")));
+            const q: Record<string, number> = {};
+            for (const s of Array.isArray(parsed.snacks) ? parsed.snacks : []) {
+              if (s && typeof (s as { id?: unknown }).id === "string" && typeof (s as { quantity?: unknown }).quantity === "number") {
+                q[(s as { id: string }).id] = (s as { quantity: number }).quantity;
+              }
+            }
+            setSnackQuantities(q);
+          } else {
+            window.sessionStorage.removeItem(getSeatHoldStorageKey(showId));
+          }
+        }
+      } catch {
+        // ignore
+      }
+    }
+    setHydrated(true);
+  }, [showId]);
 
   const isLocked = bookingClosed || showClosedNow;
 
@@ -231,7 +293,9 @@ export default function SeatSelection({
     () => calculateSeatTotal(price, selectedList),
     [price, selectedList],
   );
-  const totalAmount = seatTotal + snackTotal;
+  const glassUnit = is3D ? Math.max(0, glassCharge) : 0;
+  const glassTotal = glassUnit * selectedList.length;
+  const totalAmount = seatTotal + glassTotal + snackTotal;
 
   const categoryBreakdown = useMemo(
     () =>
@@ -269,6 +333,42 @@ export default function SeatSelection({
       return next.size === current.size ? current : next;
     });
   }, [bookedSeatSet]);
+
+  useEffect(() => {
+    if (!hydrated || typeof window === "undefined") return;
+    if (isLocked) return;
+    if (selectedList.length === 0) {
+      window.sessionStorage.removeItem(getSeatHoldStorageKey(showId));
+      return;
+    }
+    const existingRaw = window.sessionStorage.getItem(getSeatHoldStorageKey(showId));
+    let existing: StoredSeatHold | null = null;
+    if (existingRaw) {
+      try { existing = JSON.parse(existingRaw) as StoredSeatHold; } catch { existing = null; }
+    }
+    const next: StoredSeatHold = {
+      holdId: existing?.showId === showId && existing.holdId ? existing.holdId : (hold?.holdId ?? ""),
+      showId,
+      seats: selectedList,
+      snacks: snackSelections,
+      expiresAt:
+        existing?.showId === showId &&
+        existing.expiresAt &&
+        new Date(existing.expiresAt).getTime() > Date.now()
+          ? existing.expiresAt
+          : (hold?.expiresAt ?? ""),
+    };
+    window.sessionStorage.setItem(getSeatHoldStorageKey(showId), JSON.stringify(next));
+  }, [hydrated, isLocked, selectedList, snackSelections, showId, hold?.holdId, hold?.expiresAt]);
+
+  const handleHoldExpire = useCallback(() => {
+    if (typeof window !== "undefined") {
+      window.sessionStorage.removeItem(getSeatHoldStorageKey(showId));
+    }
+    setHold(null);
+    router.push(`/book/${showId}?expired=1`);
+    router.refresh();
+  }, [router, showId]);
 
   useEffect(() => {
     if (previewSeat && !selectedSeats.has(previewSeat)) {
@@ -369,163 +469,61 @@ export default function SeatSelection({
     }
 
     setIsProcessing(true);
-    setStatus("Creating your order...");
+    setStatus("Holding your seats...");
 
     try {
-      const orderResponse = await fetch("/api/razorpay/order", {
+      const holdResponse = await fetch("/api/seat-holds", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          showId,
-          seats: selectedList,
-          snacks: snackSelections,
-        }),
-
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ showId, seats: selectedList }),
       });
-      const orderPayload = await readJson<OrderResponse & ApiError>(
-        orderResponse,
-      );
+      const holdPayload = await readJson<{ holdId?: string; expiresAt?: string } & ApiError>(holdResponse);
 
-      if (orderResponse.status === 401) {
+      if (holdResponse.status === 401) {
         setIsProcessing(false);
         setStatus(null);
         router.push(loginHref);
         return;
       }
-
-      if (!orderResponse.ok || !orderPayload?.orderId) {
-        if (orderResponse.status === 409) {
-          router.refresh();
-        }
-
-        throw new Error(
-          orderPayload?.error ??
-            "Could not start payment. Please try again.",
-        );
+      if (!holdResponse.ok || !holdPayload?.holdId || !holdPayload?.expiresAt) {
+        if (holdResponse.status === 409) router.refresh();
+        throw new Error(holdPayload?.error ?? "Could not hold seats. Please try again.");
       }
 
-      setStatus("Loading Razorpay Checkout...");
-      const isCheckoutReady = await loadRazorpayCheckout();
-
-      if (!isCheckoutReady) {
-        throw new Error(
-          "Could not load Razorpay Checkout. Check your connection and try again.",
-        );
+      const nextHold: StoredSeatHold = {
+        holdId: holdPayload.holdId,
+        showId,
+        seats: selectedList,
+        snacks: snackSelections,
+        expiresAt: holdPayload.expiresAt,
+      };
+      setHold(nextHold);
+      if (typeof window !== "undefined") {
+        window.sessionStorage.setItem(getSeatHoldStorageKey(showId), JSON.stringify(nextHold));
       }
 
-      setStatus("Waiting for payment...");
-
-      let isCheckoutFinished = false;
-
-      const checkout = new window.Razorpay({
-        key: orderPayload.keyId,
-        amount: orderPayload.amount,
-        currency: orderPayload.currency,
-        name: "SpotTicket",
-        description: orderPayload.description,
-        order_id: orderPayload.orderId,
-        prefill: {
-          ...(userEmail ? { email: userEmail } : {}),
-          ...(userPhone ? { contact: userPhone } : {}),
-        },
-        notes: {
-          movie: movieTitle,
-          theatre: theatreName,
-          show: showLabel,
-        },
-        theme: {
-          color: "#f59e0b",
-        },
-        modal: {
-          ondismiss: () => {
-            if (isCheckoutFinished) {
-              return;
-            }
-
-            setIsProcessing(false);
-            setStatus(null);
-            setError("Payment was cancelled. Your seats are still selected.");
-          },
-        },
-        handler: async (response) => {
-          isCheckoutFinished = true;
-          setStatus("Confirming your booking...");
-
-          try {
-            const bookingResponse = await fetch("/api/bookings", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
-                showId,
-                seats: selectedList,
-                snacks: snackSelections,
-              }),
-
-            });
-            const bookingPayload = await readJson<{ bookingId?: string } & ApiError>(
-              bookingResponse,
-            );
-
-            if (!bookingResponse.ok || !bookingPayload?.bookingId) {
-              if (bookingResponse.status === 409) {
-                router.refresh();
-              }
-
-              throw new Error(
-                bookingPayload?.error ??
-                  "Payment was received, but we could not save your booking. Please contact support.",
-              );
-            }
-
-            setStatus("Redirecting to your ticket...");
-            router.push(
-              `/booking/success?id=${encodeURIComponent(
-                bookingPayload.bookingId,
-              )}`,
-            );
-          } catch (bookingError) {
-            setIsProcessing(false);
-            setStatus(null);
-            setError(
-              getErrorMessage(
-                bookingError,
-                "Payment was received, but we could not save your booking. Please contact support.",
-              ),
-            );
-          }
-        },
-      });
-
-      checkout.on("payment.failed", (failure) => {
-        isCheckoutFinished = true;
-        setIsProcessing(false);
-        setStatus(null);
-        setError(
-          failure.error?.description ??
-            "Payment failed. Please try again with another method.",
-        );
-      });
-
-      checkout.open();
-    } catch (orderError) {
+      router.push(`/book/${showId}/bill`);
+      router.refresh();
+    } catch (e) {
+      setError(getErrorMessage(e, "Could not proceed to bill. Please try again."));
+    } finally {
       setIsProcessing(false);
       setStatus(null);
-      setError(
-        getErrorMessage(orderError, "Could not start payment. Please try again."),
-      );
     }
   }
 
   return (
     <>
       <div className="space-y-4 sm:space-y-5">
+        {hold?.expiresAt && !isLocked && (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-accent/20 bg-accent/[0.06] p-3 sm:p-4">
+            <div>
+              <p className="text-sm font-semibold text-white">Seats on hold</p>
+              <p className="mt-0.5 text-[11px] text-zinc-400">Complete payment before the timer ends.</p>
+            </div>
+            <SeatHoldTimer expiresAt={hold.expiresAt} onExpire={handleHoldExpire} />
+          </div>
+        )}
         {isLocked && (
           <div
             role="alert"
@@ -559,11 +557,16 @@ export default function SeatSelection({
               </span>
 
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <span className="h-px w-5 bg-accent" />
                   <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-accent">
                     Select your seats
                   </span>
+                  {is3D && (
+                    <span className="inline-flex items-center rounded-full border border-accent/30 bg-accent px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.14em] text-black shadow-[0_0_18px_rgba(245,158,11,0.35)]">
+                      3D
+                    </span>
+                  )}
                 </div>
 
                 <h1 className="mt-1.5 text-xl font-bold tracking-tight text-white sm:text-2xl lg:text-3xl">
@@ -586,6 +589,11 @@ export default function SeatSelection({
                 {movieMeta && (
                   <p className="mt-1 text-[10px] text-zinc-500 sm:text-[11px]">
                     {movieMeta}
+                  </p>
+                )}
+                {is3D && (
+                  <p className="mt-2 inline-flex rounded-full border border-accent/20 bg-accent/10 px-2.5 py-1 text-[10px] font-medium text-accent">
+                    3D Glasses will be provided / charged at booking
                   </p>
                 )}
               </div>
@@ -702,6 +710,7 @@ export default function SeatSelection({
                 selectedSeats={selectedSeats}
                 isProcessing={isProcessing}
                 isLocked={isLocked}
+                is3D={is3D}
                 onToggleSeat={toggleSeat}
               />
             </div>
@@ -724,6 +733,7 @@ export default function SeatSelection({
                 bookedSeats={bookedSeatSet}
                 selectedSeats={selectedSeats}
                 activeSeat={latestSelectedSeat}
+                is3D={is3D}
               />
             </div>
 
@@ -777,13 +787,24 @@ export default function SeatSelection({
                         className="flex items-center justify-between gap-3 text-[11px]"
                       >
                         <span className="text-zinc-400">
-                          {entry.category.name} Ã— {entry.count}
+                          {entry.category.name} · {entry.count}
                         </span>
                         <span className="font-medium text-zinc-200">
                           {formatPrice(entry.subtotal)}
                         </span>
                       </div>
                     ))}
+
+                    {glassTotal > 0 && (
+                      <div className="flex items-center justify-between gap-3 text-[11px]">
+                        <span className="text-zinc-400">
+                          3D Glasses · {selectedList.length}
+                        </span>
+                        <span className="font-medium text-zinc-200">
+                          {formatPrice(glassTotal)}
+                        </span>
+                      </div>
+                    )}
 
                     {snackTotal > 0 && (
                       <div className="flex items-center justify-between gap-3 text-[11px]">
@@ -883,6 +904,9 @@ export default function SeatSelection({
                 (selectedList.length > 0
                   ? [
                       selectedList.join(", "),
+                      glassTotal > 0
+                        ? `3D glasses ${formatPrice(glassTotal)}`
+                        : null,
                       snackCount > 0
                         ? `${snackCount} snack${snackCount === 1 ? "" : "s"}`
                         : null,
@@ -911,12 +935,12 @@ export default function SeatSelection({
             ) : isProcessing ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Processing...
+                {status ?? "Processing..."}
               </>
             ) : (
               <>
                 <Ticket className="h-4 w-4" />
-                Pay {formatPrice(totalAmount)}
+                Proceed to Bill
               </>
             )}
           </button>
@@ -929,6 +953,7 @@ export default function SeatSelection({
           movieTitle={movieTitle}
           posterUrl={moviePosterUrl}
           trailerUrl={trailerUrl}
+          is3D={is3D}
           onClose={() => setPreviewSeat(null)}
         />
       )}

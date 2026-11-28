@@ -114,6 +114,11 @@ export default async function MovieDetailPage({
             </h1>
 
             <div className="mt-4 flex flex-wrap items-center gap-2">
+              {movie.is_3d && (
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-accent/30 bg-accent px-3 py-1.5 text-xs font-bold text-black">
+                  3D
+                </span>
+              )}
               <span className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-1.5 text-xs font-medium text-zinc-300">
                 <Languages className="h-3.5 w-3.5 text-accent" />
                 {movie.language}

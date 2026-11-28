@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getShowById } from "@/lib/catalog";
 import { getErrorMessage } from "@/lib/format";
+import { calculateBookingCharges, roundMoney } from "@/lib/pricing";
 import {
   getRazorpayOrder,
   getRazorpayPayment,
@@ -30,6 +31,7 @@ interface BookingRequestBody {
   showId?: unknown;
   seats?: unknown;
   snacks?: unknown;
+  holdId?: unknown;
 }
 
 function readString(value: unknown) {
@@ -68,6 +70,7 @@ export async function POST(request: Request) {
     const showId = readString(body.showId);
     const seats = normalizeSeatIds(body.seats);
     const snackSelections = normalizeSnackSelections(body.snacks);
+    const holdId = readString(body.holdId) ?? "";
 
     if (
       !orderId ||
@@ -148,12 +151,19 @@ export async function POST(request: Request) {
 
     const seatKey = seats.join(",");
     const seatTotal = calculateSeatTotal(price, seats);
-    const totalAmount =
-      Math.round((seatTotal + snackPricing.total) * 100) / 100;
+    const glassCharge = show.movies?.is_3d
+      ? Math.max(0, Number(show.movies.glass_charge ?? 0) || 0)
+      : 0;
+    const glassTotal = glassCharge * seats.length;
+    const bookingCharges = calculateBookingCharges();
+    const totalAmount = roundMoney(
+      seatTotal + glassTotal + snackPricing.total + bookingCharges.total,
+    );
     const expectedAmount = Math.round(totalAmount * 100);
     const snacksHash = getSnackSignature(snackSelections);
     const order = await getRazorpayOrder(orderId);
     const orderSnacksHash = order.notes?.snacks_hash ?? getSnackSignature([]);
+    const orderHoldId = order.notes?.hold_id ?? "";
 
     if (
       order.id !== orderId ||
@@ -161,7 +171,8 @@ export async function POST(request: Request) {
       order.notes?.user_id !== user.id ||
       order.notes?.show_id !== show.id ||
       order.notes?.seats !== seatKey ||
-      orderSnacksHash !== snacksHash
+      orderSnacksHash !== snacksHash ||
+      (holdId && orderHoldId && holdId !== orderHoldId)
     ) {
       return NextResponse.json(
         {
@@ -219,6 +230,25 @@ export async function POST(request: Request) {
     }
 
     const adminSupabase = createAdminClient();
+    if (orderHoldId || holdId) {
+      const { data: hold } = await adminSupabase
+        .from("seat_holds")
+        .select("id, user_id, show_id, seats, expires_at")
+        .eq("id", orderHoldId || holdId)
+        .maybeSingle();
+      const holdSeats = Array.isArray(hold?.seats)
+        ? (hold!.seats as string[]).map((s) => s.toUpperCase()).sort()
+        : [];
+      const holdExpired = !hold?.expires_at || new Date(hold.expires_at).getTime() <= Date.now();
+      const seatsMatch = holdSeats.length === seats.length && holdSeats.every((s, i) => s === seats[i]);
+      if (!hold || hold.user_id !== user.id || hold.show_id !== show.id || holdExpired || !seatsMatch) {
+        return NextResponse.json(
+          { error: `Your seat hold expired. Payment ${paymentId} was received; contact support with this payment ID.`, code: "HOLD_EXPIRED" },
+          { status: 409 },
+        );
+      }
+    }
+
     const { data: bookingId, error: insertError } = await adminSupabase.rpc(
       "confirm_booking",
       {
@@ -277,6 +307,13 @@ export async function POST(request: Request) {
         },
         { status: 500 },
       );
+    }
+
+    if (orderHoldId || holdId) {
+      await adminSupabase.rpc("release_seat_hold", {
+        p_user_id: user.id,
+        p_hold_id: orderHoldId || holdId,
+      });
     }
 
     return NextResponse.json({ bookingId }, { status: 201 });

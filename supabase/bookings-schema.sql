@@ -6,11 +6,19 @@ create table if not exists public.bookings (
   show_id uuid not null references public.shows (id) on delete cascade,
   seats text[] not null check (cardinality(seats) > 0),
   total_amount numeric(10, 2) not null check (total_amount >= 0),
+  glass_quantity integer not null default 0 check (glass_quantity >= 0),
+  glass_total numeric(10, 2) not null default 0 check (glass_total >= 0),
   payment_id text not null unique,
   status text not null default 'confirmed'
     check (status in ('pending', 'confirmed', 'cancelled', 'failed')),
   created_at timestamptz not null default now()
 );
+
+alter table public.bookings
+  add column if not exists glass_quantity integer not null default 0;
+
+alter table public.bookings
+  add column if not exists glass_total numeric(10, 2) not null default 0;
 
 create index if not exists bookings_user_id_idx on public.bookings (user_id);
 create index if not exists bookings_show_id_idx on public.bookings (show_id);
@@ -117,6 +125,14 @@ declare
   v_unit_price numeric;
   v_quantity integer;
   v_line_total numeric;
+  v_show_price numeric(10, 2);
+  v_is_3d boolean;
+  v_glass_charge numeric(10, 2);
+  v_glass_quantity integer;
+  v_glass_total numeric(10, 2);
+  v_seat_total numeric(10, 2);
+  v_snack_total numeric(10, 2) := 0;
+  v_expected_total numeric(10, 2);
 begin
   if p_user_id is null
     or p_show_id is null
@@ -161,6 +177,46 @@ begin
     return v_existing_booking_id;
   end if;
 
+  select s.price, coalesce(m.is_3d, false), coalesce(m.glass_charge, 0)
+  into v_show_price, v_is_3d, v_glass_charge
+  from public.shows s
+  join public.movies m on m.id = s.movie_id
+  where s.id = p_show_id;
+
+  if v_show_price is null then
+    raise exception 'INVALID_BOOKING_DETAILS' using errcode = '22023';
+  end if;
+
+  v_glass_quantity := case when v_is_3d then cardinality(v_seats) else 0 end;
+  v_glass_total := round((v_glass_quantity * greatest(v_glass_charge, 0))::numeric, 2);
+  v_seat_total := round((v_show_price * cardinality(v_seats))::numeric, 2);
+
+  for v_item in select value from jsonb_array_elements(p_items)
+  loop
+    v_name := btrim(coalesce(v_item->>'name', ''));
+    v_unit_price := nullif(v_item->>'unit_price', '')::numeric;
+    v_quantity := nullif(v_item->>'quantity', '')::integer;
+    v_line_total := nullif(v_item->>'line_total', '')::numeric;
+
+    if v_name = ''
+      or v_unit_price is null
+      or v_unit_price < 0
+      or v_quantity is null
+      or v_quantity < 1
+      or v_quantity > 20
+      or v_line_total is null
+      or abs(v_line_total - round((v_unit_price * v_quantity)::numeric, 2)) > 0.01 then
+      raise exception 'INVALID_BOOKING_ITEMS' using errcode = '22023';
+    end if;
+
+    v_snack_total := round((v_snack_total + v_line_total)::numeric, 2);
+  end loop;
+
+  v_expected_total := round((v_seat_total + v_glass_total + v_snack_total)::numeric, 2);
+  if abs(round(p_total_amount::numeric, 2) - v_expected_total) > 0.01 then
+    raise exception 'INVALID_BOOKING_TOTAL' using errcode = '22023';
+  end if;
+
   perform pg_advisory_xact_lock(hashtextextended(p_show_id::text, 0));
 
   select booked.seat
@@ -178,6 +234,8 @@ begin
     show_id,
     seats,
     total_amount,
+    glass_quantity,
+    glass_total,
     payment_id,
     status
   )
@@ -185,7 +243,9 @@ begin
     p_user_id,
     p_show_id,
     v_seats,
-    p_total_amount,
+    v_expected_total,
+    v_glass_quantity,
+    v_glass_total,
     p_payment_id,
     'confirmed'
   )
@@ -202,17 +262,6 @@ begin
     v_unit_price := nullif(v_item->>'unit_price', '')::numeric;
     v_quantity := nullif(v_item->>'quantity', '')::integer;
     v_line_total := nullif(v_item->>'line_total', '')::numeric;
-
-    if v_name = ''
-      or v_unit_price is null
-      or v_unit_price < 0
-      or v_quantity is null
-      or v_quantity < 1
-      or v_quantity > 20
-      or v_line_total is null
-      or v_line_total < 0 then
-      raise exception 'INVALID_BOOKING_ITEMS' using errcode = '22023';
-    end if;
 
     insert into public.booking_items (
       booking_id,

@@ -130,6 +130,8 @@ export default async function BookShowPage({ params }: BookShowPageProps) {
             showtimeOptions={showtimeOptions}
             bookingClosed={bookingStatus.isClosed}
             isLoggedIn={Boolean(user)}
+            is3D={show.movies?.is_3d === true}
+            glassCharge={Number(show.movies?.glass_charge ?? 0)}
             userEmail={user?.email ?? null}
             userPhone={user?.phone ?? null}
             bookedSeats={bookedSeatsResult.data}

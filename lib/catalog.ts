@@ -12,6 +12,8 @@ export interface CatalogMovie {
   poster_url: string;
   trailer_url: string | null;
   description: string | null;
+  is_3d: boolean;
+  glass_charge: number;
   created_at: string;
 }
 
@@ -60,6 +62,19 @@ function singleRelation<T>(value: Embedded<T> | undefined) {
   return value ?? null;
 }
 
+function normalizeCatalogMovie(
+  movie: Omit<CatalogMovie, "is_3d" | "glass_charge"> & {
+    is_3d?: boolean | null;
+    glass_charge?: number | string | null;
+  },
+): CatalogMovie {
+  return {
+    ...movie,
+    is_3d: movie.is_3d === true,
+    glass_charge: Math.max(0, Number(movie.glass_charge ?? 0) || 0),
+  };
+}
+
 const uuidPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -101,12 +116,14 @@ export async function getMovies(
 
     const movies = new Map<string, CatalogMovie>();
 
-    for (const row of (data ?? []) as (CatalogMovie & {
+    for (const row of (data ?? []) as (Omit<CatalogMovie, "is_3d" | "glass_charge"> & {
+      is_3d?: boolean | null;
+      glass_charge?: number | string | null;
       shows?: unknown;
     })[]) {
       const { shows, ...movie } = row;
       void shows;
-      movies.set(movie.id, movie);
+      movies.set(movie.id, normalizeCatalogMovie(movie));
     }
 
     return { data: Array.from(movies.values()), error: null };
@@ -162,9 +179,12 @@ export async function getComingSoonMovies(
       ),
     );
 
-    const comingSoon = ((moviesResult.data ?? []) as CatalogMovie[]).filter(
-      (movie) => !showingIds.has(movie.id),
-    );
+    const comingSoon = ((moviesResult.data ?? []) as (Omit<CatalogMovie, "is_3d" | "glass_charge"> & {
+      is_3d?: boolean | null;
+      glass_charge?: number | string | null;
+    })[])
+      .map(normalizeCatalogMovie)
+      .filter((movie) => !showingIds.has(movie.id));
 
     return { data: comingSoon, error: null };
   } catch (error) {
@@ -202,7 +222,14 @@ export async function getMovieById(
       return { data: null, error: error.message };
     }
 
-    return { data: (data as CatalogMovie | null) ?? null, error: null };
+    const movie = data as
+      | (Omit<CatalogMovie, "is_3d" | "glass_charge"> & {
+          is_3d?: boolean | null;
+          glass_charge?: number | string | null;
+        })
+      | null;
+
+    return { data: movie ? normalizeCatalogMovie(movie) : null, error: null };
   } catch (error) {
     return {
       data: null,
@@ -362,7 +389,7 @@ export async function getShowById(
     let query = supabase
       .from("shows")
       .select(
-        "id, movie_id, theatre_id, show_date, show_time, price, movies(id, title, language, genre, duration, poster_url, trailer_url, description, created_at), theatres!inner(id, name, location, total_seats)",
+        "id, movie_id, theatre_id, show_date, show_time, price, movies(id, title, language, genre, duration, poster_url, trailer_url, description, is_3d, glass_charge, created_at), theatres!inner(id, name, location, total_seats)",
       )
       .eq("id", id);
 
@@ -376,11 +403,19 @@ export async function getShowById(
       return { data: null, error: error.message };
     }
 
-    const rawShow = data as unknown as RawBookingShow | null;
+    const rawShow = data as unknown as (Omit<RawBookingShow, "movies"> & {
+      movies: Embedded<
+        Omit<CatalogMovie, "is_3d" | "glass_charge"> & {
+          is_3d?: boolean | null;
+          glass_charge?: number | string | null;
+        }
+      >;
+    }) | null;
+    const movie = rawShow ? singleRelation(rawShow.movies) : null;
     const show = rawShow
       ? {
           ...rawShow,
-          movies: singleRelation(rawShow.movies),
+          movies: movie ? normalizeCatalogMovie(movie) : null,
           theatres: singleRelation(rawShow.theatres),
         }
       : null;

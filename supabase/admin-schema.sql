@@ -19,11 +19,20 @@ create table if not exists public.movies (
   poster_url text not null default '',
   description text,
   trailer_url text,
+  is_3d boolean not null default false,
+  glass_charge numeric(10, 2) not null default 0 check (glass_charge >= 0),
   created_at timestamptz not null default now()
 );
 
 alter table public.movies
   add column if not exists trailer_url text;
+
+alter table public.movies
+  add column if not exists is_3d boolean not null default false;
+
+alter table public.movies
+  add column if not exists glass_charge numeric(10, 2) not null default 0;
+
 
 create table if not exists public.movie_cast (
   id uuid primary key default gen_random_uuid(),

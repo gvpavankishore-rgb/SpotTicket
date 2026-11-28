@@ -39,6 +39,8 @@ export interface BookingDetails {
   show_id: string;
   seats: string[];
   total_amount: number;
+  glass_quantity: number;
+  glass_total: number;
   payment_id: string;
   status: string;
   created_at: string;
@@ -61,8 +63,13 @@ interface RawBookingItem
 }
 
 interface RawBooking
-  extends Omit<BookingDetails, "shows" | "total_amount" | "booking_items"> {
+  extends Omit<
+    BookingDetails,
+    "shows" | "total_amount" | "glass_quantity" | "glass_total" | "booking_items"
+  > {
   total_amount: number | string;
+  glass_quantity: number | string | null;
+  glass_total: number | string | null;
   shows: Embedded<RawBookingShow>;
   booking_items: RawBookingItem[] | null;
 }
@@ -73,6 +80,8 @@ const BOOKING_SELECT = `
   show_id,
   seats,
   total_amount,
+  glass_quantity,
+  glass_total,
   payment_id,
   status,
   created_at,
@@ -119,6 +128,8 @@ function normalizeBooking(raw: RawBooking): BookingDetails {
     ...raw,
     seats: Array.isArray(raw.seats) ? raw.seats : [],
     total_amount: Number(raw.total_amount),
+    glass_quantity: Number(raw.glass_quantity ?? 0),
+    glass_total: Number(raw.glass_total ?? 0),
     booking_items: bookingItems.map((item) => ({
       ...item,
       id: String(item.id),
@@ -227,12 +238,21 @@ export async function getBookedSeatsForShow(
 
   try {
     const supabase = createClient();
-    const { data, error } = await supabase.rpc("get_booked_seats", {
+    const { data, error } = await supabase.rpc("get_unavailable_seats", {
       p_show_id: showId,
     });
 
     if (error) {
-      return { data: [], error: error.message };
+      const fallback = await supabase.rpc("get_booked_seats", {
+        p_show_id: showId,
+      });
+      if (fallback.error) {
+        return { data: [], error: fallback.error.message };
+      }
+      const seats = Array.isArray(fallback.data)
+        ? fallback.data.filter((seat): seat is string => typeof seat === "string")
+        : [];
+      return { data: seats, error: null };
     }
 
     const seats = Array.isArray(data)
